@@ -4,11 +4,14 @@
 #include<sys/stat.h>
 #include<pwd.h>
 #include<grp.h>
+#include<time.h>
 #include<dirent.h>
 #include<stdlib.h>
 #include<errno.h>
 #include<stdbool.h>
 #include<string.h>
+
+void trimDate(char** myDate);
 
 
 int main(int argc, char *argv[]){
@@ -90,8 +93,10 @@ int main(int argc, char *argv[]){
 			char* groupName = (!(groupID = getgrgid(myStat.st_gid))) ? "" : groupID->gr_name;
 
 
+			char* myDate = ctime(&myStat.st_mtime);
+			trimDate(&myDate);
 
-			printf("%s %li %s %s %s\n", permission, myStat.st_nlink, username, groupName, dStruct->d_name);
+			printf("%s %li %s %s %zi %s %s\n", permission, myStat.st_nlink, username, groupName, myStat.st_size, myDate, dStruct->d_name);
 			free(itemPath);
 		}
 
@@ -103,4 +108,15 @@ int main(int argc, char *argv[]){
 	closedir(directory);
 
 	return EXIT_SUCCESS;
+}
+
+void trimDate(char** myDate){
+	*(myDate)+=4; //Trim off day of week
+	
+	int i, cCount = 0;
+	for(i=0;cCount<2;i++){
+		if((*myDate)[i] == ':') cCount+=1;
+	}
+
+	(*myDate)[i-1] = '\0'; //Trim at 2nd colon
 }
