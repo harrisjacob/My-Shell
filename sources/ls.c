@@ -11,8 +11,9 @@
 #include<stdbool.h>
 #include<string.h>
 
-void trimDate(char** myDate);
+void usage();
 
+void trimDate(char** myDate);
 
 int main(int argc, char *argv[]){
 
@@ -27,8 +28,11 @@ int main(int argc, char *argv[]){
 
 	int opt = 0;
 
-	while((opt = getopt(argc, argv, "la"))!= -1){
+	while((opt = getopt(argc, argv, "hla"))!= -1){
 		switch(opt){
+			case 'h':
+				usage();
+				return EXIT_SUCCESS;
 			case 'l':
 				lFlag = true;
 				break;
@@ -47,15 +51,17 @@ int main(int argc, char *argv[]){
 		return EXIT_FAILURE;
 	}
 
-	struct stat dirStat;
-	int dirBlocks;
-	if(stat(dirPath, &dirStat)<0){
-		fprintf(stderr, "%s: stat failed on directory: %s\n", argv[0], strerror(errno));
-		dirBlocks = 0;
-	}else{
-		dirBlocks = dirStat.st_blocks;
+	if(lFlag){
+		struct stat dirStat;
+		int dirBlocks;
+		if(stat(dirPath, &dirStat)<0){
+			fprintf(stderr, "%s: stat failed on directory: %s\n", argv[0], strerror(errno));
+			dirBlocks = 0;
+		}else{
+			dirBlocks = dirStat.st_blocks;
+		}
+		printf("total %i\n",dirBlocks);
 	}
-	printf("total %i\n",dirBlocks);
 
 	struct dirent *dStruct;
 	while((dStruct = readdir(directory))){
@@ -108,18 +114,21 @@ int main(int argc, char *argv[]){
 
 			printf("%s %li %11s %11s %4zi %s %s\n", permission, myStat.st_nlink, username, groupName, myStat.st_size, myDate, dStruct->d_name);
 			free(itemPath);
+		}else{
+			printf("%s  ", dStruct->d_name);
 		}
 
 		
 	}
 
-	printf("\n");
-
+	printf((!lFlag) ? "\n" : "");
+	
 	closedir(directory);
 
 	return EXIT_SUCCESS;
 }
 
+//Trims the week day, seconds, and year from the specified date
 void trimDate(char** myDate){
 	*(myDate)+=4; //Trim off day of week
 	
@@ -129,4 +138,14 @@ void trimDate(char** myDate){
 	}
 
 	(*myDate)[i-1] = '\0'; //Trim at 2nd colon
+}
+
+void usage(){
+	printf("Usage: ls [OPTION]\n");
+	printf("List information about the FILEs\n");
+	printf("Entries are sorted alphabetically\n\n");
+	printf("Supported flags:\n");
+	printf("  -a\tdo not ignore entries starting with .\n");
+	printf("  -h\thelp (more information)\n");
+	printf("  -l\tuse long listing format\n");
 }
