@@ -14,7 +14,7 @@ int main(int argc, char *argv[]){
 	char dirPath[BUFSIZ];
 	getcwd(dirPath, BUFSIZ);
 
-	char* permission = "----------";
+	char permission[11] = "----------";
 	bool lFlag, aFlag;
 
 
@@ -55,13 +55,37 @@ int main(int argc, char *argv[]){
 			char* preText = dirPath;
 			char* itemPath = malloc(sizeof(dirPath)+sizeof(dStruct->d_name));
 			sprintf(itemPath, "%s/%s", preText, dStruct->d_name);
-			printf("%s\n", itemPath);
 		
+			if(stat(itemPath, &myStat)<0){
+				printf("%s: Couldn't read %s: %s\n", argv[0], dStruct->d_name, strerror(errno));
+				continue;
+			}
 
+			switch(myStat.st_mode & S_IFMT){
+				case S_IFBLK: permission[0] = 'b'; break;
+				case S_IFCHR: permission[0] = 'c'; break;
+				case S_IFDIR: permission[0] = 'd'; break;
+				case S_IFIFO: permission[0] = 'p'; break;
+				case S_IFLNK: permission[0] = 'l'; break;
+				case S_IFREG: permission[0] = '-'; break;
+				default: printf("Unknown file type\n"); break;
+			}
+			
+			permission[1] = (myStat.st_mode & S_IRUSR) ? 'r' : '-';
+			permission[2] = (myStat.st_mode & S_IWUSR) ? 'w' : '-';
+			permission[3] = (myStat.st_mode & S_IXUSR) ? 'x' : '-';
+			permission[4] = (myStat.st_mode & S_IRGRP) ? 'r' : '-';
+			permission[5] = (myStat.st_mode & S_IWGRP) ? 'w' : '-';
+			permission[6] = (myStat.st_mode & S_IXGRP) ? 'x' : '-';
+			permission[7] = (myStat.st_mode & S_IROTH) ? 'r' : '-';
+			permission[8] = (myStat.st_mode & S_IWOTH) ? 'w' : '-';
+			permission[9] = (myStat.st_mode & S_IXOTH) ? 'x' : '-';
+			char* hello = permission;
+			printf("%s\t%s\n", hello, dStruct->d_name);
 			free(itemPath);
 		}
 
-		printf("%s  ", dStruct->d_name);
+		//printf("%s  ", dStruct->d_name);
 	}
 
 	printf("\n");
