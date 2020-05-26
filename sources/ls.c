@@ -47,6 +47,16 @@ int main(int argc, char *argv[]){
 		return EXIT_FAILURE;
 	}
 
+	struct stat dirStat;
+	int dirBlocks;
+	if(stat(dirPath, &dirStat)<0){
+		fprintf(stderr, "%s: stat failed on directory: %s\n", argv[0], strerror(errno));
+		dirBlocks = 0;
+	}else{
+		dirBlocks = dirStat.st_blocks;
+	}
+	printf("total %i\n",dirBlocks);
+
 	struct dirent *dStruct;
 	while((dStruct = readdir(directory))){
 		
@@ -62,7 +72,7 @@ int main(int argc, char *argv[]){
 			sprintf(itemPath, "%s/%s", preText, dStruct->d_name);
 		
 			if(stat(itemPath, &myStat)<0){
-				fprintf(stderr, "%s: Couldn't read %s: %s\n", argv[0], dStruct->d_name, strerror(errno));
+				fprintf(stderr, "%s: stat failed on %s: %s\n", argv[0], dStruct->d_name, strerror(errno));
 				continue;
 			}
 
@@ -96,7 +106,7 @@ int main(int argc, char *argv[]){
 			char* myDate = ctime(&myStat.st_mtime);
 			trimDate(&myDate);
 
-			printf("%s %li %s %s %zi %s %s\n", permission, myStat.st_nlink, username, groupName, myStat.st_size, myDate, dStruct->d_name);
+			printf("%s %li %11s %11s %4zi %s %s\n", permission, myStat.st_nlink, username, groupName, myStat.st_size, myDate, dStruct->d_name);
 			free(itemPath);
 		}
 
