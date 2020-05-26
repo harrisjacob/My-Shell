@@ -2,6 +2,8 @@
 #include<unistd.h>
 #include<sys/types.h>
 #include<sys/stat.h>
+#include<pwd.h>
+#include<grp.h>
 #include<dirent.h>
 #include<stdlib.h>
 #include<errno.h>
@@ -31,14 +33,14 @@ int main(int argc, char *argv[]){
 				aFlag = true;
 				break;
 			default:
-				printf("Unknown flag %c\n", opt);
-				break;
+				fprintf(stderr, "Try 'ls -h' for more information\n");
+				return EXIT_FAILURE;
 		}
 	}
 
 	DIR *directory;
 	if(!(directory = opendir(dirPath))){
-		printf("%s: %s\n", argv[0], strerror(errno));
+		fprintf(stderr, "%s: %s\n", argv[0], strerror(errno));
 		return EXIT_FAILURE;
 	}
 
@@ -57,7 +59,7 @@ int main(int argc, char *argv[]){
 			sprintf(itemPath, "%s/%s", preText, dStruct->d_name);
 		
 			if(stat(itemPath, &myStat)<0){
-				printf("%s: Couldn't read %s: %s\n", argv[0], dStruct->d_name, strerror(errno));
+				fprintf(stderr, "%s: Couldn't read %s: %s\n", argv[0], dStruct->d_name, strerror(errno));
 				continue;
 			}
 
@@ -68,7 +70,7 @@ int main(int argc, char *argv[]){
 				case S_IFIFO: permission[0] = 'p'; break;
 				case S_IFLNK: permission[0] = 'l'; break;
 				case S_IFREG: permission[0] = '-'; break;
-				default: printf("Unknown file type\n"); break;
+				default: permission[0] = '-'; break;
 			}
 			
 			permission[1] = (myStat.st_mode & S_IRUSR) ? 'r' : '-';
@@ -80,12 +82,20 @@ int main(int argc, char *argv[]){
 			permission[7] = (myStat.st_mode & S_IROTH) ? 'r' : '-';
 			permission[8] = (myStat.st_mode & S_IWOTH) ? 'w' : '-';
 			permission[9] = (myStat.st_mode & S_IXOTH) ? 'x' : '-';
-			char* hello = permission;
-			printf("%s\t%s\n", hello, dStruct->d_name);
+			
+			struct passwd* userPass;
+			char* username = (!(userPass = getpwuid(myStat.st_uid))) ? "" : userPass->pw_name;
+
+			struct group* groupID;
+			char* groupName = (!(groupID = getgrgid(myStat.st_gid))) ? "" : groupID->gr_name;
+
+
+
+			printf("%s %li %s %s %s\n", permission, myStat.st_nlink, username, groupName, dStruct->d_name);
 			free(itemPath);
 		}
 
-		//printf("%s  ", dStruct->d_name);
+		
 	}
 
 	printf("\n");
