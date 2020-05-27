@@ -74,13 +74,25 @@ int main(int argc, char *argv[]){
 		if(lFlag){
 			struct stat myStat;
 			char* preText = dirPath;
-			char* itemPath = malloc(sizeof(dirPath)+sizeof(dStruct->d_name));
-			sprintf(itemPath, "%s/%s", preText, dStruct->d_name);
-		
-			if(stat(itemPath, &myStat)<0){
-				fprintf(stderr, "%s: stat failed on %s: %s\n", argv[0], dStruct->d_name, strerror(errno));
+			char* itemPath;
+			if(!(itemPath = malloc(sizeof(dirPath)+sizeof(dStruct->d_name)))){
+				fprintf(stderr, "%s: Memory allocation failed for %s directory string\n", argv[0], argv[0]);
+				continue;
+			} 
+			
+			if(sprintf(itemPath, "%s/%s", preText, dStruct->d_name) < 0){
+				fprintf(stderr, "%s: path could not be resolved for %s\n", argv[0], dStruct->d_name);
+				free(itemPath);
 				continue;
 			}
+
+			if(stat(itemPath, &myStat)<0){
+				fprintf(stderr, "%s: stat failed on %s: %s\n", argv[0], dStruct->d_name, strerror(errno));
+				free(itemPath);
+				continue;
+			}
+
+			free(itemPath);
 
 			switch(myStat.st_mode & S_IFMT){
 				case S_IFBLK: permission[0] = 'b'; break;
@@ -113,7 +125,6 @@ int main(int argc, char *argv[]){
 			trimDate(&myDate);
 
 			printf("%s %li %11s %11s %4zi %s %s\n", permission, myStat.st_nlink, username, groupName, myStat.st_size, myDate, dStruct->d_name);
-			free(itemPath);
 		}else{
 			printf("%s  ", dStruct->d_name);
 		}
