@@ -26,20 +26,44 @@ int main(int argc, char *argv[]){
 		if(!(program = strtok(buff, " \t\n")))continue;
 		if(strcmp(program, "quit") == 0 || strcmp(program, "exit")==0) break;
 
+		
+		char *dirPath;
+		long dirPathSize = pathconf(".", _PC_PATH_MAX);
+		if(!(dirPath = malloc((size_t)dirPathSize))){
+			fprintf(stderr,"%s: Memory allocation failed for CWD string\n", argv[0]);
+			continue;
+		}
+
+		if(!(getcwd(dirPath, (size_t)dirPathSize))){
+			fprintf(stderr,"%s: Failed to retrieve CWD path\n", argv[0]);
+			free(dirPath);
+			continue;
+		}
+		
+		/*
 		char dirPath[BUFSIZ];
 		getcwd(dirPath, BUFSIZ);
+		*/
+
 		
 		char* utilDirect;
-		if(!(utilDirect = malloc(sizeof(dirPath)+sizeof(10)))){
+		if(!(utilDirect = malloc(dirPathSize+strlen("/programs")+1))){;
+			free(dirPath);
 			fprintf(stderr, "%s: Memory allocation failed for utility string\n", argv[0]);
 			continue;
-		}  
+		}
+		
+		
 
 		if(sprintf(utilDirect, "%s/programs", dirPath) < 0){
 			fprintf(stderr, "%s: path could not be resolved for utility programs directory\n", argv[0]);
 			free(utilDirect);
+			free(dirPath);
 			continue;
 		}
+
+		free(dirPath);
+
 
 		DIR *directory;
 		if(!(directory = opendir(utilDirect))){
@@ -48,14 +72,16 @@ int main(int argc, char *argv[]){
 			continue;
 		}
 
-		struct dirent *dStruct;
-		while((dStruct = readdir(directory))){
-			if(strcmp(program, dStruct->d_name) == 0){
+
+		struct dirent *oneDir, dStruct;
+		while((oneDir = readdir(directory))){
+			if(strcmp(program, oneDir->d_name) == 0){
 				validProgram = true;
 				break;
 			}
 		}
 
+		memcpy(&dStruct, oneDir, sizeof(struct dirent));
 		closedir(directory);
 
 		if(!validProgram){
@@ -67,13 +93,15 @@ int main(int argc, char *argv[]){
 		//Read in the remaining arguments
 		while(argIndex < MAX_ARGS  && (args[argIndex++] = strtok(NULL, " \t\n")));
 
-		if(!(fullProgramPath = malloc(sizeof(utilDirect)+sizeof(dStruct->d_name)))){
+
+		if(!(fullProgramPath = malloc(sizeof(utilDirect)+sizeof(dStruct.d_name)))){
 			fprintf(stderr, "%s: Memory allocation failed for program path\n", argv[0]);
 			free(utilDirect);
 			continue;
 		}
-		if(sprintf(fullProgramPath, "%s/%s", utilDirect, dStruct->d_name) < 0){
-			fprintf(stderr, "%s: path could not be resolved for %s\n", argv[0], dStruct->d_name);
+
+		if(sprintf(fullProgramPath, "%s/%s", utilDirect, dStruct.d_name) < 0){
+			fprintf(stderr, "%s: path could not be resolved for %s\n", argv[0], dStruct.d_name);
 			free(utilDirect);
 			free(fullProgramPath);
 			continue;
