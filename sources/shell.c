@@ -76,6 +76,7 @@ int main(int argc, char *argv[]){
 		if(!validProgram){
 			printf("-MyShell: %s: command not found\n", program);
 			free(utilDirect);
+			closedir(directory);
 			continue;
 		}
 
