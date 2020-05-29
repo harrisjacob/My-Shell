@@ -23,8 +23,10 @@ int main(int argc, char *argv[]){
 		printf("MyShell$ ");
 
 		fgets(buff, BUFSIZ, stdin);
+
 		if(!(program = strtok(buff, " \t\n")))continue;
 		if(strcmp(program, "quit") == 0 || strcmp(program, "exit")==0) break;
+
 
 		char *dirPath;
 		long dirPathSize = pathconf(".", _PC_PATH_MAX);
@@ -38,6 +40,7 @@ int main(int argc, char *argv[]){
 			free(dirPath);
 			continue;
 		}
+		
 		
 		char* utilDirect;
 		if(!(utilDirect = malloc(dirPathSize+strlen("/programs")+1))){;
@@ -70,14 +73,14 @@ int main(int argc, char *argv[]){
 			}
 		}
 
-		memcpy(&dStruct, oneDir, sizeof(struct dirent));
-		closedir(directory);
-
 		if(!validProgram){
 			printf("-MyShell: %s: command not found\n", program);
 			free(utilDirect);
 			continue;
 		}
+
+		memcpy(&dStruct, oneDir, sizeof(struct dirent));
+		closedir(directory);
 
 		while(argIndex < MAX_ARGS-1 && (args[argIndex++] = strtok(NULL, " \t\n")));
 
@@ -114,11 +117,3 @@ int main(int argc, char *argv[]){
 
 	return EXIT_SUCCESS;
 }
-
-/*
-	printf("Program: %s\n", program);
-	int i = 0;
-	while(args[i]){
-		printf("%s\n", args[i++]);
-	}
-*/
