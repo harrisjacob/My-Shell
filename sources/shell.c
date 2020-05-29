@@ -10,12 +10,12 @@
 
 #define MAX_ARGS 10
 
-int setENV(char* currProg);
+int setMyENV(char* currProg);
 
 int main(int argc, char *argv[]){
 
-	if(setENV(argv[0]) == EXIT_FAILURE) return EXIT_FAILURE;
-	
+	if(setMyENV(argv[0]) == EXIT_FAILURE) return EXIT_FAILURE;
+
 	while(true){
 		
 		char* program, *fullProgramPath;
@@ -123,7 +123,7 @@ int main(int argc, char *argv[]){
 	return EXIT_SUCCESS;
 }
 
-int setENV(char* currProg){
+int setMyENV(char* currProg){
 
 	char *dirPath;
 	long dirPathSize = pathconf(".", _PC_PATH_MAX);
@@ -138,26 +138,19 @@ int setENV(char* currProg){
 		return EXIT_FAILURE;
 	}
 
-	char* rootPath;
-	char envVar[8] = "myRoot=";
+	const char envVar[7] = "myRoot";
 
-	if(!(rootPath = malloc((size_t)dirPathSize+strlen(envVar)+1))){
-		fprintf(stderr, "%s: Failed to allocate root ENV variable\n", currProg);
-		free(dirPath);
+	if(setenv(envVar, dirPath, 0)!=0){
+		fprintf(stderr, "%s: Failed to write root environment variable: %s\n", currProg, strerror(errno));
 		return EXIT_FAILURE;
 	}
 
-	if(sprintf(rootPath, "%s%s", (char *) &envVar, dirPath) < 0){
-		fprintf(stderr, "%s: Failed to build root ENV variable\n", currProg);
-		free(rootPath);
-		free(dirPath);
-		return EXIT_FAILURE;
-	}
-
-	
-
-	free(rootPath);
 	free(dirPath);
+
+	if(!getenv(envVar)){
+		fprintf(stderr, "%s: Check root environment variable failed\n", currProg);
+		return EXIT_FAILURE;
+	}
 
 	return EXIT_SUCCESS;
 }
