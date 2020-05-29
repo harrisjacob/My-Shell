@@ -10,7 +10,11 @@
 
 #define MAX_ARGS 10
 
+int setENV(char* currProg);
+
 int main(int argc, char *argv[]){
+
+	if(setENV(argv[0]) == EXIT_FAILURE) return EXIT_FAILURE;
 	
 	while(true){
 		
@@ -115,6 +119,45 @@ int main(int argc, char *argv[]){
 		}
 		free(fullProgramPath);
 	}
+
+	return EXIT_SUCCESS;
+}
+
+int setENV(char* currProg){
+
+	char *dirPath;
+	long dirPathSize = pathconf(".", _PC_PATH_MAX);
+	if(!(dirPath = malloc((size_t)dirPathSize))){
+		fprintf(stderr,"%s: Memory allocation failed for CWD string\n", currProg);
+		return EXIT_FAILURE;
+	}
+
+	if(!(getcwd(dirPath, (size_t)dirPathSize))){
+		fprintf(stderr,"%s: Failed to retrieve CWD path\n", currProg);
+		free(dirPath);
+		return EXIT_FAILURE;
+	}
+
+	char* rootPath;
+	char envVar[8] = "myRoot=";
+
+	if(!(rootPath = malloc((size_t)dirPathSize+strlen(envVar)+1))){
+		fprintf(stderr, "%s: Failed to allocate root ENV variable\n", currProg);
+		free(dirPath);
+		return EXIT_FAILURE;
+	}
+
+	if(sprintf(rootPath, "%s%s", (char *) &envVar, dirPath) < 0){
+		fprintf(stderr, "%s: Failed to build root ENV variable\n", currProg);
+		free(rootPath);
+		free(dirPath);
+		return EXIT_FAILURE;
+	}
+
+	
+
+	free(rootPath);
+	free(dirPath);
 
 	return EXIT_SUCCESS;
 }
