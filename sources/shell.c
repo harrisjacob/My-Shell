@@ -11,22 +11,21 @@
 #define MAX_ARGS 10
 
 int main(int argc, char *argv[]){
-
+	
 	while(true){
-
+		
 		char* program, *fullProgramPath;
 		char* args[MAX_ARGS];
 		char buff[BUFSIZ];
 		int argIndex = 1;
 		bool validProgram = false;
 
-
 		printf("MyShell$ ");
+
 		fgets(buff, BUFSIZ, stdin);
 		if(!(program = strtok(buff, " \t\n")))continue;
 		if(strcmp(program, "quit") == 0 || strcmp(program, "exit")==0) break;
 
-		
 		char *dirPath;
 		long dirPathSize = pathconf(".", _PC_PATH_MAX);
 		if(!(dirPath = malloc((size_t)dirPathSize))){
@@ -40,12 +39,6 @@ int main(int argc, char *argv[]){
 			continue;
 		}
 		
-		/*
-		char dirPath[BUFSIZ];
-		getcwd(dirPath, BUFSIZ);
-		*/
-
-		
 		char* utilDirect;
 		if(!(utilDirect = malloc(dirPathSize+strlen("/programs")+1))){;
 			free(dirPath);
@@ -53,8 +46,6 @@ int main(int argc, char *argv[]){
 			continue;
 		}
 		
-		
-
 		if(sprintf(utilDirect, "%s/programs", dirPath) < 0){
 			fprintf(stderr, "%s: path could not be resolved for utility programs directory\n", argv[0]);
 			free(utilDirect);
@@ -64,14 +55,12 @@ int main(int argc, char *argv[]){
 
 		free(dirPath);
 
-
 		DIR *directory;
 		if(!(directory = opendir(utilDirect))){
 			fprintf(stderr, "%s: Couldn't open utility program directory: %s\n", argv[0], strerror(errno));
 			free(utilDirect);
 			continue;
 		}
-
 
 		struct dirent *oneDir, dStruct;
 		while((oneDir = readdir(directory))){
@@ -90,9 +79,7 @@ int main(int argc, char *argv[]){
 			continue;
 		}
 
-		//Read in the remaining arguments
-		while(argIndex < MAX_ARGS  && (args[argIndex++] = strtok(NULL, " \t\n")));
-
+		while(argIndex < MAX_ARGS-1 && (args[argIndex++] = strtok(NULL, " \t\n")));
 
 		if(!(fullProgramPath = malloc(sizeof(utilDirect)+sizeof(dStruct.d_name)))){
 			fprintf(stderr, "%s: Memory allocation failed for program path\n", argv[0]);
@@ -111,26 +98,20 @@ int main(int argc, char *argv[]){
 
 		args[0] = fullProgramPath;
 
-		int p = 0;
-		while(args[p]){
-			printf("%s\n", args[p++]);
+		pid_t newPID;
+		if((newPID = fork()) < 0){
+			fprintf(stderr, "%s: Fork process failed: %s\n", argv[0], strerror(errno));
+			return EXIT_FAILURE;
+		}else if(newPID == 0){
+			execvp(fullProgramPath, args);
+			fprintf(stderr, "%s: exec failed to launch program: %s\n", argv[0], strerror(errno));
+			return EXIT_FAILURE;
+		}else{
+			waitpid(newPID, NULL, 0);
 		}
-
 		free(fullProgramPath);
 	}
-/*
-	pid_t newPID;
-	if((newPID = fork()) < 0){
-		fprintf(stderr, "%s: Fork process failed: %s\n", argv[0], strerror(errno));
-		return EXIT_FAILURE;
-	}else if(newPID == 0){
-		printf("Child process!\n");
-		return EXIT_SUCCESS;
-	}else{
-		waitpid(newPID, NULL, 0);
-		printf("Parent process!\n");
-	}
-*/
+
 	return EXIT_SUCCESS;
 }
 
