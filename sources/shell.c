@@ -7,8 +7,9 @@
 #include<unistd.h>
 #include<stdbool.h>
 #include<dirent.h>
-#include "cd.h"
 #include "common.h"
+#include "cd.h"
+
 
 #define MAX_ARGS 10
 
@@ -18,6 +19,28 @@ int main(int argc, char *argv[]){
 
 	if(setMyENV(argv[0]) == EXIT_FAILURE) return EXIT_FAILURE;
 
+	char *dirPath;
+	long dirPathSize = pathconf(".", _PC_PATH_MAX);
+	if(!(dirPath = malloc((size_t)dirPathSize))){
+		fprintf(stderr,"%s: Memory allocation failed for CWD string\n", argv[0]);
+		return EXIT_FAILURE;
+	}
+
+	if(!(getcwd(dirPath, (size_t)dirPathSize))){
+		fprintf(stderr,"%s: Failed to retrieve CWD path\n", argv[0]);
+		free(dirPath);
+		return EXIT_FAILURE;
+	}
+		
+	char* utilDirect;
+	char progDir[] = "/programs/";
+
+	if(!(utilDirect = addToPath(dirPath, progDir))){
+		free(dirPath);
+		return EXIT_FAILURE;
+	}
+	free(dirPath);
+
 	while(true){
 		
 		char* program, *fullProgramPath;
@@ -25,7 +48,7 @@ int main(int argc, char *argv[]){
 		char buff[BUFSIZ];
 		int argIndex = 1;
 		bool validProgram = false;
-		
+
 		printf("MyShell$ ");
 
 		fgets(buff, BUFSIZ, stdin);
@@ -33,35 +56,9 @@ int main(int argc, char *argv[]){
 		if(!(program = strtok(buff, " \t\n")))continue;
 		if(strcmp(program, "quit") == 0 || strcmp(program, "exit")==0) break;
 
-
-		char *dirPath;
-		long dirPathSize = pathconf(".", _PC_PATH_MAX);
-		if(!(dirPath = malloc((size_t)dirPathSize))){
-			fprintf(stderr,"%s: Memory allocation failed for CWD string\n", argv[0]);
-			continue;
-		}
-
-		if(!(getcwd(dirPath, (size_t)dirPathSize))){
-			fprintf(stderr,"%s: Failed to retrieve CWD path\n", argv[0]);
-			free(dirPath);
-			continue;
-		}
-		
-		
-		char* utilDirect;
-		char progDir[] = "programs";
-
-		if(!(utilDirect = addToPath(dirPath, progDir))){
-			free(dirPath);
-			continue;
-		}
-		free(dirPath);
-
-		
 		DIR *directory;
 		if(!(directory = opendir(utilDirect))){
 			fprintf(stderr, "%s: Couldn't open utility program directory: %s\n", argv[0], strerror(errno));
-			free(utilDirect);
 			continue;
 		}
 
@@ -77,7 +74,6 @@ int main(int argc, char *argv[]){
 
 		if(!validProgram){
 			printf("-MyShell: %s: command not found\n", program);
-			free(utilDirect);
 			closedir(directory);
 			continue;
 		}
@@ -86,7 +82,6 @@ int main(int argc, char *argv[]){
 
 		if(strcmp(program, "cd") == 0){
 			changeDirectory(args[1]);
-			free(utilDirect);
 			closedir(directory);
 			continue;
 		}
@@ -94,22 +89,22 @@ int main(int argc, char *argv[]){
 		memcpy(&dStruct, oneDir, sizeof(struct dirent));
 		closedir(directory);
 
-
-		if(!(fullProgramPath = addToPath(utilDirect, dStruct.d_name))){
-			free(utilDirect);
-			continue;
-		}
-		free(utilDirect);
+		if(!(fullProgramPath = addToPath(utilDirect, dStruct.d_name))) continue;
+		
 
 		args[0] = fullProgramPath;
 
 		pid_t newPID;
 		if((newPID = fork()) < 0){
 			fprintf(stderr, "%s: Fork process failed: %s\n", argv[0], strerror(errno));
+			free(fullProgramPath);
+			free(utilDirect);
 			return EXIT_FAILURE;
 		}else if(newPID == 0){
 			execvp(fullProgramPath, args);
 			fprintf(stderr, "%s: exec failed to launch program: %s\n", argv[0], strerror(errno));
+			free(fullProgramPath);
+			free(utilDirect);
 			return EXIT_FAILURE;
 		}else{
 			waitpid(newPID, NULL, 0);
@@ -117,6 +112,7 @@ int main(int argc, char *argv[]){
 		free(fullProgramPath);
 	}
 
+	free(utilDirect);
 	return EXIT_SUCCESS;
 }
 
@@ -135,9 +131,9 @@ int setMyENV(char* currProg){
 		return EXIT_FAILURE;
 	}
 
-	const char envVar[] = "myRoot";
-	const char myCWD[] = "myCWD";
-	const char newRoot[] = "/";
+	char envVar[] = "myRoot";
+	char myCWD[] = "myCWD";
+	char newRoot[] = "/";
 
 	if(setenv(envVar, dirPath, 0)!=0){
 		fprintf(stderr, "%s: Failed to write %s environment variable: %s\n", currProg, envVar, strerror(errno));
