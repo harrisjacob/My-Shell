@@ -7,7 +7,8 @@
 #include<unistd.h>
 #include<stdbool.h>
 #include<dirent.h>
-#include "cd.h" 
+#include "cd.h"
+#include "common.h"
 
 #define MAX_ARGS 10
 
@@ -24,8 +25,7 @@ int main(int argc, char *argv[]){
 		char buff[BUFSIZ];
 		int argIndex = 1;
 		bool validProgram = false;
-
-
+		
 		printf("MyShell$ ");
 
 		fgets(buff, BUFSIZ, stdin);
@@ -49,21 +49,15 @@ int main(int argc, char *argv[]){
 		
 		
 		char* utilDirect;
-		if(!(utilDirect = malloc(dirPathSize+strlen("/programs")+1))){;
-			free(dirPath);
-			fprintf(stderr, "%s: Memory allocation failed for utility string\n", argv[0]);
-			continue;
-		}
-		
-		if(sprintf(utilDirect, "%s/programs", dirPath) < 0){
-			fprintf(stderr, "%s: path could not be resolved for utility programs directory\n", argv[0]);
-			free(utilDirect);
-			free(dirPath);
-			continue;
-		}
+		char progDir[] = "programs";
 
+		if(!(utilDirect = addToPath(dirPath, progDir))){
+			free(dirPath);
+			continue;
+		}
 		free(dirPath);
 
+		
 		DIR *directory;
 		if(!(directory = opendir(utilDirect))){
 			fprintf(stderr, "%s: Couldn't open utility program directory: %s\n", argv[0], strerror(errno));
@@ -91,7 +85,7 @@ int main(int argc, char *argv[]){
 		while(argIndex < MAX_ARGS-1 && (args[argIndex++] = strtok(NULL, " \t\n")));
 
 		if(strcmp(program, "cd") == 0){
-			changeDirect(args[1]);
+			changeDirectory(args[1]);
 			free(utilDirect);
 			closedir(directory);
 			continue;
@@ -100,19 +94,11 @@ int main(int argc, char *argv[]){
 		memcpy(&dStruct, oneDir, sizeof(struct dirent));
 		closedir(directory);
 
-		if(!(fullProgramPath = malloc(sizeof(utilDirect)+sizeof(dStruct.d_name)))){
-			fprintf(stderr, "%s: Memory allocation failed for program path\n", argv[0]);
-			free(utilDirect);
-			continue;
-		}
 
-		if(sprintf(fullProgramPath, "%s/%s", utilDirect, dStruct.d_name) < 0){
-			fprintf(stderr, "%s: path could not be resolved for %s\n", argv[0], dStruct.d_name);
+		if(!(fullProgramPath = addToPath(utilDirect, dStruct.d_name))){
 			free(utilDirect);
-			free(fullProgramPath);
 			continue;
 		}
-		
 		free(utilDirect);
 
 		args[0] = fullProgramPath;
@@ -149,9 +135,9 @@ int setMyENV(char* currProg){
 		return EXIT_FAILURE;
 	}
 
-	const char envVar[7] = "myRoot";
-	const char myCWD[6] = "myCWD";
-	const char newRoot[2] = "/";
+	const char envVar[] = "myRoot";
+	const char myCWD[] = "myCWD";
+	const char newRoot[] = "/";
 
 	if(setenv(envVar, dirPath, 0)!=0){
 		fprintf(stderr, "%s: Failed to write %s environment variable: %s\n", currProg, envVar, strerror(errno));

@@ -5,10 +5,11 @@ SRCS = ./sources
 _OBJ = ls pwd
 OBJ = $(patsubst %, $(PDIR)/%, $(_OBJ))
 LIBR = ./lib
+HEAD = lib/cd.h lib/common.h
 
 all: shell $(OBJ)
 
-shell: sources/shell.c lib/cd.h
+shell: sources/shell.c $(HEAD)
 	$(CC) $< -o $@ $(CFLAGS) -I $(LIBR)
 
 $(PDIR)/%: $(SRCS)/%.c
