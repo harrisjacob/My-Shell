@@ -2,13 +2,14 @@ CC = gcc
 CFLAGS = -Wall
 PDIR = ./programs
 SRCS = ./sources
-_OBJ = ls
+_OBJ = ls pwd
 OBJ = $(patsubst %, $(PDIR)/%, $(_OBJ))
-PROG = $(patsubst %, $(SRCS)/%.c, $(_OBJ))
 LIBR = ./lib
 
-shell: sources/shell.c $(OBJ)
+all: shell $(OBJ)
+
+shell: sources/shell.c
 	$(CC) $< -o $@ $(CFLAGS) -I $(LIBR)
 
-$(OBJ): $(PROG)
+$(PDIR)/%: $(SRCS)/%.c
 	$(CC) $< -o $@ $(CFLAGS) -I $(LIBR)

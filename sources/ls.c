@@ -23,7 +23,6 @@ int main(int argc, char *argv[]){
 	char permission[11] = "----------";
 	bool lFlag, aFlag;
 
-
 	lFlag = aFlag = false;
 
 	int opt = 0;

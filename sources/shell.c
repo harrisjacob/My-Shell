@@ -140,9 +140,16 @@ int setMyENV(char* currProg){
 	}
 
 	const char envVar[7] = "myRoot";
+	const char myCWD[6] = "myCWD";
+	const char newRoot[2] = "/";
 
 	if(setenv(envVar, dirPath, 0)!=0){
-		fprintf(stderr, "%s: Failed to write root environment variable: %s\n", currProg, strerror(errno));
+		fprintf(stderr, "%s: Failed to write %s environment variable: %s\n", currProg, envVar, strerror(errno));
+		return EXIT_FAILURE;
+	}
+
+	if(setenv(myCWD, newRoot, 0)!=0){
+		fprintf(stderr, "%s: Failed to write %s environment variable: %s\n", currProg, myCWD, strerror(errno));
 		return EXIT_FAILURE;
 	}
 
