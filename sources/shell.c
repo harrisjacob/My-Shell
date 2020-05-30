@@ -7,7 +7,7 @@
 #include<unistd.h>
 #include<stdbool.h>
 #include<dirent.h>
-#include "common.h" 
+#include "cd.h" 
 
 #define MAX_ARGS 10
 
@@ -24,6 +24,7 @@ int main(int argc, char *argv[]){
 		char buff[BUFSIZ];
 		int argIndex = 1;
 		bool validProgram = false;
+
 
 		printf("MyShell$ ");
 
@@ -78,6 +79,8 @@ int main(int argc, char *argv[]){
 			}
 		}
 
+		if(strcmp(program, "cd") == 0) validProgram = true;
+
 		if(!validProgram){
 			printf("-MyShell: %s: command not found\n", program);
 			free(utilDirect);
@@ -85,10 +88,17 @@ int main(int argc, char *argv[]){
 			continue;
 		}
 
+		while(argIndex < MAX_ARGS-1 && (args[argIndex++] = strtok(NULL, " \t\n")));
+
+		if(strcmp(program, "cd") == 0){
+			changeDirect(args[1]);
+			free(utilDirect);
+			closedir(directory);
+			continue;
+		}
+
 		memcpy(&dStruct, oneDir, sizeof(struct dirent));
 		closedir(directory);
-
-		while(argIndex < MAX_ARGS-1 && (args[argIndex++] = strtok(NULL, " \t\n")));
 
 		if(!(fullProgramPath = malloc(sizeof(utilDirect)+sizeof(dStruct.d_name)))){
 			fprintf(stderr, "%s: Memory allocation failed for program path\n", argv[0]);

@@ -8,7 +8,7 @@ LIBR = ./lib
 
 all: shell $(OBJ)
 
-shell: sources/shell.c
+shell: sources/shell.c lib/cd.h
 	$(CC) $< -o $@ $(CFLAGS) -I $(LIBR)
 
 $(PDIR)/%: $(SRCS)/%.c
