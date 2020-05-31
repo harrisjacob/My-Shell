@@ -67,7 +67,12 @@ void trimToChar(char *trimStr, char x, int depth){
 	for(i = strlen(trimStr)-1, j = 0; i>=0 && j<depth; i--, j++){
 		if(trimStr[i] == x){
 			trimStr[i] = '\0';
-			return;
+			break;
 		}
+	}
+
+	if(strlen(trimStr)==0){
+		trimStr[0] = '/';
+		trimStr[1] = '\0';
 	}
 }

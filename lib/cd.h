@@ -16,7 +16,18 @@ int changeDirectory(char* propPath){
 		if(strcmp(oldCWD, "/")==0){
 			return EXIT_SUCCESS;
 		}
-		//step up one directory
+		
+		trimToChar(oldCWD, '/', strlen(oldCWD));
+		char* actualCWD = getcwd(NULL, 0);
+		trimToChar(actualCWD, '/', strlen(actualCWD));
+
+		if(setDirectory(oldCWD, actualCWD) < 0){
+			free(actualCWD);
+			return EXIT_FAILURE;
+		}
+
+		free(actualCWD);
+		return EXIT_SUCCESS;
 	}
 	
 	trimToChar(propPath, '/', 1);
@@ -46,23 +57,7 @@ int changeDirectory(char* propPath){
 			free(newPath);
 			return EXIT_FAILURE;
 		}
-
 		free(newPath);
 	}
-
-	
 	return EXIT_SUCCESS;
-
 }
-
-/*
-
-	if(chdir(path)<0){
-		fprintf(stderr, "Chdir failed: %s\n", strerror(errno));
-		return EXIT_FAILURE;
-	}
-
-	printf("Looks like it passed\n");
-*/
-
-//int changeDirectoryUtil
