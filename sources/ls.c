@@ -21,9 +21,9 @@ int main(int argc, char *argv[]){
 	getcwd(dirPath, BUFSIZ);
 
 	char permission[11] = "----------";
-	bool lFlag, aFlag;
+	bool lFlag, aFlag, res;
 
-	lFlag = aFlag = false;
+	lFlag = aFlag = res = false;
 
 	int opt = 0;
 
@@ -69,7 +69,7 @@ int main(int argc, char *argv[]){
 			if(strcmp(dStruct->d_name,".") == 0 || strcmp(dStruct->d_name,"..")==0) continue;
 			if((dStruct->d_name)[0] == '.') continue;
 		}
-
+		res = true;
 		if(lFlag){
 			struct stat myStat;
 			char* preText = dirPath;
@@ -131,7 +131,7 @@ int main(int argc, char *argv[]){
 		
 	}
 
-	printf((!lFlag) ? "\n" : "");
+	printf((!lFlag && res) ? "\n" : "");
 	
 	closedir(directory);
 
