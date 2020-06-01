@@ -43,7 +43,7 @@ char* addToPath(char* basePath, char* pathAdd){
 	return newPath;
 }
 
-int setDirectory(char* localPath, char* uPath){
+int setDirectory(char* localPath, char* uPath){ //local path is aliased, uPath is actual path
 
 	if(!localPath || !uPath) return -1;
 	if(chdir(uPath) < 0){
