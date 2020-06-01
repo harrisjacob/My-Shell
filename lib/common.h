@@ -33,27 +33,34 @@ char* addToPath(char* basePath, char* pathAdd){
 		fprintf(stderr, "Path append allocation failed\n");
 		return NULL;
 	}
-
-	if(sprintf(newPath,"%s%s", basePath, pathAdd)<0){
-		fprintf(stderr, "Path append build failed\n");
-		free(newPath);
-		return NULL;
+	if(strlen(basePath) == 1){
+		if(sprintf(newPath,"/%s", pathAdd)<0){
+			fprintf(stderr, "Path append build failed\n");
+			free(newPath);
+			return NULL;
+		}
+	}else{
+		if(sprintf(newPath,"%s/%s", basePath, pathAdd)<0){
+			fprintf(stderr, "Path append build failed\n");
+			free(newPath);
+			return NULL;
+		}
 	}
 
 	return newPath;
 }
 
 int setDirectory(char* localPath, char* uPath){ //local path is aliased, uPath is actual path
-
+	
 	if(!localPath || !uPath) return -1;
 	if(chdir(uPath) < 0){
-		fprintf(stderr, "Change directory failed for Unix path: %s\n", strerror(errno));
+		fprintf(stderr, "-MyShell: cd: %s\n", strerror(errno));
 		return -1;
 	}
 
 	char myCWD[] = "myCWD";
 	if(setenv(myCWD, localPath, 1)<0){
-		fprintf(stderr, "Change directory failed local path: %s\n", strerror(errno));
+		fprintf(stderr, "Change directory failed aliased path: %s\n", strerror(errno));
 		return -1;
 	}
 

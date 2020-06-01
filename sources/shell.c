@@ -33,7 +33,7 @@ int main(int argc, char *argv[]){
 	}
 		
 	char* utilDirect;
-	char progDir[] = "/programs/";
+	char progDir[] = "programs";
 
 	if(!(utilDirect = addToPath(dirPath, progDir))){
 		free(dirPath);
