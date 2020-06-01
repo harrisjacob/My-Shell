@@ -4,63 +4,39 @@ int changeDirectoryUtil(char* directory, char* startLocAlias, char* startLocActu
 
 	if(strcmp(directory, ".") == 0) return EXIT_SUCCESS;	//User wants to stay in current directory
 
-	/*
-	char* startLocAliasCopy = NULL;
-	memcpy(startLocAliasCopy, startLocAlias, strlen(startLocAlias)+1);
-
-	char* startLocActualCopy = NULL;
-	memcpy(startLocActualCopy, startLocActual, strlen(startLocActual)+1);
-	*/
 
 	if(strcmp(directory,"..")==0){ 							//User wants to go to parent directory
 
-		if(strcmp(startLocAlias, "/")==0){				//User is at aliased root and should not change directory
-			//free(startLocAliasCopy);
-			//free(startLocActualCopy);	
-			return EXIT_SUCCESS;
-		}
-
+		if(strcmp(startLocAlias, "/")==0) return EXIT_SUCCESS;	//User is at aliased root and should not change directory	
+			
 		trimToChar(startLocAlias,'/', strlen(startLocAlias));	//Trim aliased path by one directory
 		trimToChar(startLocActual,'/', strlen(startLocActual));	//Trim actual path by one directory
 
-		if(setDirectory(startLocAlias, startLocActual) < 0){					//Attempt to set the directory
-			//free(startLocAliasCopy);
-			//free(startLocActualCopy);
-			return EXIT_FAILURE; 				//Directory wasn't set for some reason, failed call will cause path reset
-		}
+		if(setDirectory(startLocAlias, startLocActual) < 0) return EXIT_FAILURE;	//Attempt to set the directory
 
 	}else{													//User wants to go to child directory
 		char *modAliasPath, *modActualPath;
 		if(!(modAliasPath = addToPath(startLocAlias, directory))){		//Append child directory to alias path
 			fprintf(stderr, "cd: Failed to append path (alias)\n");
-			//free(startLocAliasCopy);
-			//free(startLocActualCopy);
 			return EXIT_FAILURE;
 		}
 
 		if(!(modActualPath = addToPath(startLocActual, directory))){	//Append child directory to actual path
 			fprintf(stderr, "cd: Failed to append path (actual)\n");
 			free(modAliasPath);
-			//free(startLocAliasCopy);
-			//free(startLocActualCopy);
 			return EXIT_FAILURE;
 		}
 
 		if(setDirectory(modAliasPath, modActualPath) < 0){					//Attempt to set the directory
 			free(modAliasPath);
 			free(modActualPath);
-			//free(startLocAliasCopy);
-			//free(startLocActualCopy);
 			return EXIT_FAILURE; 				//Directory wasn't set for some reason, failed call will cause path reset
 		}
-
 
 		free(modAliasPath);
 		free(modActualPath);
 	}
 
-	//free(startLocAliasCopy);
-	//free(startLocActualCopy);
 	return EXIT_SUCCESS;
 }
 
@@ -128,7 +104,6 @@ int changeDirectory(char* propPath){
 			startActualLoc = currentActualCWD;
 		}
 
-		//Needs to get updated starting alias and actual
 		if(changeDirectoryUtil(breakup, startAliasLoc, startActualLoc) == EXIT_FAILURE){
 			setDirectory(prevAliasCWD, prevActualCWD);
 			free(prevAliasCWD);
