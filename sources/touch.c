@@ -17,16 +17,16 @@ void usage(){
 
 int main(int argc, char* argv[]){
 
-	if(strcmp(argv[1], "--help")==0){
-		usage();
-		return EXIT_SUCCESS;
-	}
-
 	int fd;
 	if(argc < 2){
 		fprintf(stderr, "touch: missing file operand\n");
 		fprintf(stderr, "Try 'touch --help' for more information.\n");
 		return EXIT_FAILURE;
+	}
+
+	if(strcmp(argv[1], "--help")==0){
+		usage();
+		return EXIT_SUCCESS;
 	}
 
 	if((fd = open(argv[1], O_CREAT, 00777))<0){
