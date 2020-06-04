@@ -83,3 +83,14 @@ void trimToChar(char *trimStr, char x, int depth){
 		trimStr[1] = '\0';
 	}
 }
+
+//returns the count of the char thisChar in search
+int charCount(char* search, char thisChar){
+	int cCount=0;
+	while(*search!='\0'){
+		if(*search++ == thisChar){
+			cCount++;
+		}
+	}
+	return cCount;
+}

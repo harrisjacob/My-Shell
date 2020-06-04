@@ -11,16 +11,49 @@ void usage(){
 	printf("Rename SOURCE to DEST, or move SOURCE to DIRECTORY.\n");
 }
 
+int validPath(char* path){
+	if(!path) return -1;
+
+	//char* elem;
+	
+	char *CWD = getenv("myCWD");
+	if(!CWD){
+		fprintf(stderr, "mv: Failed to check destination path\n");
+		return -1;
+	}
+
+	int depthCnt = charCount(CWD, '/');
+	printf("Depth: %d\n", depthCnt);
+/*
+	elem = strtok(CWD, "/");
+	while(elem){
+		depthCnt++;
+		elem = strtok(NULL,"/");
+	}
+*/
+	/*
+	elem = strtok(path, "/");
+	do{
+
+	}while()
+	*/
+	free(CWD);
+	return 0;
+}
+
+
 int handleMV(char* source, char* dest){
 	if(!source || !dest) return EXIT_FAILURE;
 
-		//Need to resolve full path
-	if(access(dest, W_OK|X_OK) < 0){
+
+	validPath(dest);
+
+	if(access(dest, W_OK) < 0){
 		fprintf(stderr, "mv: Permission denied for destination file: %s\n", strerror(errno));
 		return EXIT_FAILURE;
-	}else{
-		printf("Success!\n");
 	}
+	
+
 	/*
 	if(dest[0] == '/'){
 		//check from root
