@@ -70,17 +70,18 @@ int setDirectory(char* localPath, char* uPath){ //local path is aliased, uPath i
 void trimToChar(char *trimStr, char x, int depth){
 	//trimToChar searches from the end of the character array trimStr for the character x up until depth is reached
 	//When found the x character is replaced with the null character and the function exits
-	int i, j;
-	for(i = strlen(trimStr)-1, j = 0; i>=0 && j<depth; i--, j++){
-		if(trimStr[i] == x){
-			trimStr[i] = '\0';
+	int j;
+	char* strptr = trimStr+strlen(trimStr)-1;
+	for(j = 0; j<depth; j++){
+		if(*strptr-- == x){
+			*++strptr = '\0';
 			break;
 		}
 	}
 
 	if(strlen(trimStr)==0){
-		trimStr[0] = '/';
-		trimStr[1] = '\0';
+		*trimStr = '/';
+		*++trimStr = '\0';
 	}
 }
 

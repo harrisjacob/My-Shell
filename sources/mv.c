@@ -14,13 +14,17 @@ void usage(){
 int validPath(char* path){
 	if(!path) return -1;
 	
-	char *CWD = getenv("myCWD");
-	if(!CWD){
-		fprintf(stderr, "mv: Failed to verify current working directory\n");
-		return -1;
-	}
+	int depthCnt = 0;
 
-	int depthCnt = charCount(CWD, '/');
+	if(*path != '/'){
+		char *CWD = getenv("myCWD");
+		if(!CWD){
+			fprintf(stderr, "mv: Failed to verify current working directory\n");
+			return -1;
+		}
+
+		depthCnt = charCount(CWD, '/');
+	}
 
 	char* elem = strtok(path, "/");	
 	while(elem){
@@ -35,13 +39,14 @@ int validPath(char* path){
 		elem = strtok(NULL,"/");
 	}
 
+
 	return depthCnt;
 }
 
 
 int handleMV(char* source, char* dest){
+	
 	if(!source || !dest) return EXIT_FAILURE;
-
 
 	if(validPath(source) < 1){
 		fprintf(stderr, "mv: Source cannot be above root\n");
@@ -58,21 +63,7 @@ int handleMV(char* source, char* dest){
 		return EXIT_FAILURE;
 	}
 	
-
-	/*
-	if(dest[0] == '/'){
-		//check from root
-
-	}else{
-		//strtok do while?
-
-
-
-	}
-
-	//Source needs 
-
-*/
+	
 	return EXIT_SUCCESS;
 }
 
@@ -80,7 +71,11 @@ int handleMV(char* source, char* dest){
 
 
 int main(int argc, char* argv[]){
-
+	
+	char hello[] = "hello/notext";
+	trimToChar(hello, '/', strlen(hello));
+	printf("%s\n", hello);
+	
 	if(argc < 2){
 		usage();
 		return EXIT_FAILURE;
