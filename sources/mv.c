@@ -3,6 +3,8 @@
 #include<unistd.h>
 #include<string.h>
 #include<errno.h>
+#include<sys/types.h>
+#include<sys/stat.h>
 #include "common.h"
 
 void usage(){
@@ -26,7 +28,10 @@ int validPath(char* path){
 		depthCnt = charCount(CWD, '/');
 	}
 
-	char* elem = strtok(path, "/");	
+	char pathCopy[strlen(path)+1];
+	strcpy(pathCopy, path);
+
+	char* elem = strtok(pathCopy, "/");	
 	while(elem){
 		if(strcmp(elem, "..")==0){
 			depthCnt--;
@@ -48,6 +53,8 @@ int handleMV(char* source, char* dest){
 	
 	if(!source || !dest) return EXIT_FAILURE;
 
+
+
 	if(validPath(source) < 1){
 		fprintf(stderr, "mv: Source cannot be above root\n");
 		return EXIT_FAILURE;
@@ -58,12 +65,38 @@ int handleMV(char* source, char* dest){
 		return EXIT_FAILURE;
 	}
 
+	//printf("%c\n", *(dest+strlen(dest)-1));
+	/*
+	struct stat tryDirect;
+	if(stat(dest, &tryDirect) < 0){
+		fprintf(stderr, "mv: Could not identify destination\n");
+		return EXIT_FAILURE;
+	}
+
+
+	//handle path end as directory
+	if(S_ISDIR(tryDirect.st_mode)){
+
+
+	}*/
+
+/*
+	if(*(dest+strlen(dest)-1) == '/'){
+		printf("Directory\n");
+	}else{
+		printf("%c\n", *(dest+strlen(dest)));
+	}
+*/
+
+
 	if(access(dest, W_OK) < 0){
 		fprintf(stderr, "mv: Permission denied for destination file: %s\n", strerror(errno));
 		return EXIT_FAILURE;
 	}
+
 	
-	
+
+
 	return EXIT_SUCCESS;
 }
 
@@ -71,10 +104,6 @@ int handleMV(char* source, char* dest){
 
 
 int main(int argc, char* argv[]){
-	
-	char hello[] = "hello/notext";
-	trimToChar(hello, '/', strlen(hello));
-	printf("%s\n", hello);
 	
 	if(argc < 2){
 		usage();
@@ -87,6 +116,10 @@ int main(int argc, char* argv[]){
 	}
 
 
-	return handleMV(argv[1], argv[2]);
+	if(handleMV(argv[1], argv[2]) == EXIT_FAILURE){
+		fprintf(stderr, "mv: cannot move '%s' to '%s'\n", argv[1], argv[2]);
+		return EXIT_FAILURE;
+	}
 
+	return EXIT_SUCCESS;
 }
