@@ -13,32 +13,29 @@ void usage(){
 
 int validPath(char* path){
 	if(!path) return -1;
-
-	//char* elem;
 	
 	char *CWD = getenv("myCWD");
 	if(!CWD){
-		fprintf(stderr, "mv: Failed to check destination path\n");
+		fprintf(stderr, "mv: Failed to verify current working directory\n");
 		return -1;
 	}
 
 	int depthCnt = charCount(CWD, '/');
-	printf("Depth: %d\n", depthCnt);
-/*
-	elem = strtok(CWD, "/");
+
+	char* elem = strtok(path, "/");	
 	while(elem){
-		depthCnt++;
+		if(strcmp(elem, "..")==0){
+			depthCnt--;
+			if(depthCnt < 1) return -1;
+		}else if(strcmp(elem,".")==0){}
+		else{
+			depthCnt++;
+		}
+
 		elem = strtok(NULL,"/");
 	}
-*/
-	/*
-	elem = strtok(path, "/");
-	do{
 
-	}while()
-	*/
-	free(CWD);
-	return 0;
+	return depthCnt;
 }
 
 
@@ -46,7 +43,15 @@ int handleMV(char* source, char* dest){
 	if(!source || !dest) return EXIT_FAILURE;
 
 
-	validPath(dest);
+	if(validPath(source) < 1){
+		fprintf(stderr, "mv: Source cannot be above root\n");
+		return EXIT_FAILURE;
+	}
+
+	if(validPath(dest) < 1){
+		fprintf(stderr, "mv: Destination cannot be above root\n");
+		return EXIT_FAILURE;
+	}
 
 	if(access(dest, W_OK) < 0){
 		fprintf(stderr, "mv: Permission denied for destination file: %s\n", strerror(errno));
