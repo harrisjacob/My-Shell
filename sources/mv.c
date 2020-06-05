@@ -26,16 +26,18 @@ int validPath(char* path){
 		}
 
 		depthCnt = charCount(CWD, '/');
+		depthCnt += (strcmp(CWD,"/")==0) ? 0 : 1;
 	}
+	printf("%d\n", depthCnt);
 
 	char pathCopy[strlen(path)+1];
 	strcpy(pathCopy, path);
 
 	char* elem = strtok(pathCopy, "/");	
 	while(elem){
+		printf("Checking: %s\n", elem);
 		if(strcmp(elem, "..")==0){
-			depthCnt--;
-			if(depthCnt < 1) return -1;
+			if(--depthCnt < 1) return -1;
 		}else if(strcmp(elem,".")==0){}
 		else{
 			depthCnt++;
@@ -55,45 +57,62 @@ int handleMV(char* source, char* dest){
 
 
 
-	if(validPath(source) < 1){
+	if(validPath(source) < 0){
 		fprintf(stderr, "mv: Source cannot be above root\n");
 		return EXIT_FAILURE;
 	}
 
-	if(validPath(dest) < 1){
+	if(validPath(dest) < 0){
 		fprintf(stderr, "mv: Destination cannot be above root\n");
 		return EXIT_FAILURE;
 	}
 
-	//printf("%c\n", *(dest+strlen(dest)-1));
-	/*
+	if(access(dest, F_OK)==0){
+		struct stat tryDirect;
+		if(stat(dest, &tryDirect)<0){
+			return EXIT_FAILURE;
+		}
+
+		if(S_ISDIR(tryDirect.st_mode)){
+			printf("%s is a valid directory\n", dest);
+		}
+
+	}
+/*	
 	struct stat tryDirect;
+
+
+	if(*(dest+strlen(dest)-1) == '/'){
+		//Def tyring a directory
+		if(stat(dest, &tryDirect) < 0){
+			return EXIT_FAILURE;
+		}
+	}else{
+
+	}
+
 	if(stat(dest, &tryDirect) < 0){
-		fprintf(stderr, "mv: Could not identify destination\n");
-		return EXIT_FAILURE;
+		if(){
+			fprintf(stderr, "mv: Could not identify destination\n");
+			return EXIT_FAILURE;
+		}
 	}
 
 
 	//handle path end as directory
 	if(S_ISDIR(tryDirect.st_mode)){
-
-
-	}*/
-
-/*
-	if(*(dest+strlen(dest)-1) == '/'){
-		printf("Directory\n");
+		printf("Its a valid directory\n");
 	}else{
-		printf("%c\n", *(dest+strlen(dest)));
+		printf("Not a valid directoyr")
 	}
-*/
+
 
 
 	if(access(dest, W_OK) < 0){
 		fprintf(stderr, "mv: Permission denied for destination file: %s\n", strerror(errno));
 		return EXIT_FAILURE;
 	}
-
+*/
 	
 
 
