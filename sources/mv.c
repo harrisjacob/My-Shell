@@ -28,14 +28,12 @@ int validPath(char* path){
 		depthCnt = charCount(CWD, '/');
 		depthCnt += (strcmp(CWD,"/")==0) ? 0 : 1;
 	}
-	printf("%d\n", depthCnt);
 
 	char pathCopy[strlen(path)+1];
 	strcpy(pathCopy, path);
 
 	char* elem = strtok(pathCopy, "/");	
 	while(elem){
-		printf("Checking: %s\n", elem);
 		if(strcmp(elem, "..")==0){
 			if(--depthCnt < 1) return -1;
 		}else if(strcmp(elem,".")==0){}
@@ -45,8 +43,6 @@ int validPath(char* path){
 
 		elem = strtok(NULL,"/");
 	}
-
-
 	return depthCnt;
 }
 
@@ -55,7 +51,8 @@ int handleMV(char* source, char* dest){
 	
 	if(!source || !dest) return EXIT_FAILURE;
 
-
+	int isDirectory = 0;
+	char *destDirect, *fileName;
 
 	if(validPath(source) < 0){
 		fprintf(stderr, "mv: Source cannot be above root\n");
@@ -74,48 +71,47 @@ int handleMV(char* source, char* dest){
 		}
 
 		if(S_ISDIR(tryDirect.st_mode)){
-			printf("%s is a valid directory\n", dest);
-		}
+			//Valid path and ends in a directory.  Need to check permission dest path and get file name from source
+			isDirectory = 1;
 
-	}
-/*	
-	struct stat tryDirect;
+			//Unnecesary allocation in context, but should be allocated because all other cases allocate
+			if(!(destDirect = malloc((strlen(dest)+1)*sizeof(char)))) return EXIT_FAILURE;
+			memcpy(destDirect, dest, strlen(dest)+1);
 
-
-	if(*(dest+strlen(dest)-1) == '/'){
-		//Def tyring a directory
-		if(stat(dest, &tryDirect) < 0){
-			return EXIT_FAILURE;
-		}
-	}else{
-
-	}
-
-	if(stat(dest, &tryDirect) < 0){
-		if(){
-			fprintf(stderr, "mv: Could not identify destination\n");
-			return EXIT_FAILURE;
+			fileName = findTailChar(source, '/', 1);
+			if(fileName!=source) fileName++; //If the character was found, it should not be included in the filename (skip '/' character)
 		}
 	}
 
+	if(!isDirectory){
+		//One of two cases:
+		//Valid path but does not end in a directory. Need to check the write permissions of the parent and overwrite the existing file
+		//Invalid dest path provided. Either the file name is new or there was an issue with parent directories.
 
-	//handle path end as directory
-	if(S_ISDIR(tryDirect.st_mode)){
-		printf("Its a valid directory\n");
-	}else{
-		printf("Not a valid directoyr")
+		char* strSplit; // A pointer to the location of the split between new name and parent path
+		strSplit = findTailChar(dest, '/', 1);
+
+		if(strSplit!=dest){
+			if(!(destDirect = malloc((strSplit - dest + 1)*sizeof(char)))) return EXIT_FAILURE;
+			
+			memcpy(destDirect, dest, strSplit - dest);
+			*(destDirect + (strSplit - dest)) = '\0';
+
+		}else{
+			printf("StringSplit: %s\n", strSplit);
+			printf("Dest: %s\n", dest);
+			destDirect = NULL;
+		}
+		
+		fileName = strSplit;
+		fileName += (strSplit == dest) ? 0:1;
+
 	}
 
-
-
-	if(access(dest, W_OK) < 0){
-		fprintf(stderr, "mv: Permission denied for destination file: %s\n", strerror(errno));
-		return EXIT_FAILURE;
-	}
-*/
+	printf("Parent Directory: $%s$\n", destDirect);
+	printf("New filename: $%s$\n", fileName);
+	free(destDirect);
 	
-
-
 	return EXIT_SUCCESS;
 }
 

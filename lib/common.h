@@ -85,6 +85,15 @@ void trimToChar(char *trimStr, char x, int depth){
 	}
 }
 
+//FindTailChar searches search from the end to find the first occurance of x, ignoring the first depth characters
+char* findTailChar(char *search, char x, int depth){
+	char* strptr = search+strlen(search)- 1 - depth;
+	while(search!=strptr){
+		if(*strptr-- == x) return ++strptr;
+	}
+	return search;
+}
+
 //returns the count of the char thisChar in search
 int charCount(char* search, char thisChar){
 	int cCount=0;
@@ -95,3 +104,4 @@ int charCount(char* search, char thisChar){
 	}
 	return cCount;
 }
+
