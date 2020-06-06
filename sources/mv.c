@@ -97,11 +97,45 @@ int splitPath(char** pathAlc, char** fileAlc, char* baseP){
 
 }
 
+//0 is not dir, 1 is dir
+int pathIsDir(char* path){
+	if(*path == '/'){
+		char* root, *fullPath;
+		if(!(root = getenv("myRoot"))) return EXIT_FAILURE;
+		if(!(fullPath = malloc(strlen(root)+ strlen(path) + 1))) return EXIT_FAILURE;
+
+		strcpy(fullPath, root);
+		strcat(fullPath, path);
+	
+		if(access(fullPath, F_OK)==0){
+			struct stat tryPath;
+			if(stat(fullPath, &tryPath)<0){
+				free(fullPath);
+				return 0;
+			}
+			if(S_ISDIR(tryPath.st_mode)){
+				free(fullPath);
+				return 1;
+			}
+		}
+		free(fullPath);
+	}else{
+		if(access(path,F_OK)==0){
+			struct stat tryPath;
+			if(stat(path, &tryPath)<0) return 0;
+			if(S_ISDIR(tryPath.st_mode)) return 1;
+		}
+	}
+	
+	return 0;
+}
+
 int handleMV(char* source, char* dest){
 	
 	if(!source || !dest) return EXIT_FAILURE;
 
-	int isDirectory = 0;
+	int sIsDir = 0;
+	int dIsDir = 0;
 	char *dPath, *dFile, *sPath, *sFile;
 	dPath = dFile = sPath = sFile = NULL;
 	
@@ -118,97 +152,18 @@ int handleMV(char* source, char* dest){
 	}
 
 	//Check if source is a directory
-	if(*source == '/'){
-		char* root, *fullPath;
-		if(!(root = getenv("myRoot"))) return EXIT_FAILURE;
-		if(!(fullPath = malloc(strlen(root)+ strlen(source) + 1))) return EXIT_FAILURE;
-		strcpy(fullPath, root);
-		strcat(fullPath, source);
-		
-		if(access(fullPath, F_OK)==0){
-			struct stat trySource;
-			if(stat(fullPath, &trySource)>=0 && S_ISDIR(trySource.st_mode)){
-				free(fullPath);
-				return EXIT_FAILURE;
-			}
-		}
-		free(fullPath);
+	if((sIsDir = pathIsDir(source))) return EXIT_FAILURE;
 
-	}else{
-		if(access(source,F_OK)==0){
-			struct stat trySource;
-			if(stat(source, &trySource)<0){
-				return EXIT_FAILURE;
-			}
-			if(S_ISDIR(trySource.st_mode)) return EXIT_FAILURE;
-		}
-	}
+	//Check if destination is a directory
+	dIsDir = pathIsDir(dest);
 
-
-	//Destination 
-	if(access(dest, F_OK)==0){
-		struct stat tryDirect;
-		if(stat(dest, &tryDirect)<0){
-			return EXIT_FAILURE;
-		}
-
-		if(S_ISDIR(tryDirect.st_mode)){
-			isDirectory = 1;
-
-			if(!(dPath = strdup(dest))) return EXIT_FAILURE;
-
-			/*
-			fileName = findTailChar(source, '/', 1);
-			if(fileName!=source) fileName++; //If the character was found, it should not be included in the filename (skip '/' character)
-			*/
-		}
-	}
-
-	if(!isDirectory){
+	if(!dIsDir){
 		//One of two cases:
 		//Valid path but does not end in a directory. Need to check the write permissions of the parent and overwrite the existing file
 		//Invalid dest path provided. Either the file name is new or there was an issue with parent directories.
 
 		if(splitPath(&dPath, &dFile, dest)==EXIT_FAILURE) return EXIT_FAILURE;
 
-
-
-
-
-		/*
-
-		char* strSplit; // A pointer to the location of the split between new name and parent path
-		strSplit = findTailChar(dest, '/', 1);
-
-		char *aliasRoot;
-		if(!(aliasRoot = getenv("myRoot")))return EXIT_FAILURE;
-		if(strSplit!=dest){
-
-			int dPathSize = strSplit - dest + 1;
-			if(*dest=='/'){
-				if(!(destDirect = malloc(dPathSize+strlen(aliasRoot)+1))) return EXIT_FAILURE;
-				strcpy(destDirect, aliasRoot);
-				//memcpy(destDirect, aliasRoot, strlen(aliasRoot));
-				strcat(destDirect, dest);
-			}else{
-				
-				if(!(destDirect = malloc(dPathSize))) return EXIT_FAILURE;
-				memcpy(destDirect, dest, strSplit - dest);
-				*(destDirect + (strSplit - dest)) = '\0';
-			}
-
-			trimToChar(destDirect, '/', strlen(destDirect));
-		}else{
-			char *CWD;
-			if(!(CWD = getenv("myCWD")))return EXIT_FAILURE;
-			if(!(destDirect = malloc(strlen(CWD)+strlen(aliasRoot)+1)));
-			strcpy(destDirect, aliasRoot);
-			strcat(destDirect, CWD);
-		}
-		
-		fileName = strSplit;
-		fileName += (strSplit == dest) ? 0:1;
-		*/
 	}
 
 
@@ -226,20 +181,24 @@ int handleMV(char* source, char* dest){
 	}
 
 
+	char *CWD;
+	if(!(CWD= getcwd(NULL, 0))){
+		free(dPath);
+	 	free(sPath);
+	 	free(dFile);
+	 	free(sFile);
+		return EXIT_FAILURE;
+	}
 
+	int concatPathSz = strlen(sPath)+strlen(sFile)+2;
+	int rootPathSz = strlen(CWD)+strlen(sFile)+2; 
+	char finSPath[(concatPathSz > rootPathSz) ? concatPathSz : rootPathSz];
 	//Check source permissions
 	if(strcmp(sPath,sFile)==0){
 		//Check write permissions of the CWD
-		char *CWD;
-		if(!(CWD= getcwd(NULL, 0))){
-			free(dPath);
-		 	free(sPath);
-		 	free(dFile);
-		 	free(sFile);
-			return EXIT_FAILURE;
-		}
 
 		if(access(CWD, W_OK)!=0){
+			
 			free(dPath);
 		 	free(sPath);
 		 	free(dFile);
@@ -247,7 +206,11 @@ int handleMV(char* source, char* dest){
 		 	free(CWD);
 			return EXIT_FAILURE;
 		}
-		free(CWD);
+
+		strcpy(finSPath,CWD);
+		strcat(finSPath, "/");
+		strcat(finSPath, sFile);
+
 	}else{
 		//Check that write permissions of sPath is ok
 		if(access(sPath, F_OK)!=0 || access(sPath, W_OK)!=0){
@@ -258,38 +221,75 @@ int handleMV(char* source, char* dest){
 			return EXIT_FAILURE;
 		}
 
-	}
-	printf("Source Path ok\n");
+		strcpy(finSPath,sPath);
+		strcat(finSPath, "/");
+		strcat(finSPath,sFile);
 
-	//Check destination permissions
-	if(strcmp(dPath, dFile)==0){
-		//Check write permissions of CWD
-		char *CWD;
-		if(!(CWD= getcwd(NULL, 0))){
-			free(dPath);
-		 	free(sPath);
-		 	free(dFile);
-		 	free(sFile);
-			return EXIT_FAILURE;
-		}
-		printf("Dest Path (CWD) ok\n");
-
-		free(CWD);
-	}else{
-		//Check that write permission of dPath is ok
-		if(access(dPath, F_OK)!=0 || access(dPath, W_OK)!=0){
-			free(dPath);
-		 	free(sPath);
-		 	free(dFile);
-		 	free(sFile);
-			return EXIT_FAILURE;
-		}
-
-		printf("Dest Path (%s) ok\n", dPath);
 
 	}
 
 	
+	int dFileSize = strlen(dFile) + strlen(sFile) + 1;
+	//Check destination permissions
+
+	char finDPath[strlen(dPath)+dFileSize+6];
+	char tempSwitch[strlen(dPath)+dFileSize+2];
+
+	if(dIsDir){
+
+		printf("dPath: %s\n", dPath);
+		if(access(dPath, W_OK)!=0){
+			free(dPath);
+		 	free(sPath);
+		 	free(dFile);
+		 	free(sFile);
+			free(CWD);
+			return EXIT_FAILURE;
+		}
+		printf("dPath: %s\n", dPath);
+		printf("dFile: %s\n", dFile);
+		strcpy(finDPath, dPath);
+		strcat(finDPath, "/");
+		if(strcmp(dFile,"..") != 0  && strcmp(dFile, dPath)!=0){
+			strcat(finDPath, dFile);
+			strcat(finDPath, "/");
+		}
+		strcat(finDPath, sFile);
+		strcat(finDPath, ".tmp");
+
+		strcpy(tempSwitch, dPath);
+		strcat(tempSwitch, "/");
+		if(strcmp(dFile, "..")!=0 && strcmp(dFile, dPath)!=0){
+			strcat(tempSwitch, dFile);
+			strcat(tempSwitch, "/");
+		}
+		strcat(tempSwitch, sFile);
+	
+	}else{
+		//Check write permissions of CWD
+		if(access(CWD, W_OK)!=0){
+			free(dPath);
+		 	free(sPath);
+		 	free(dFile);
+		 	free(sFile);
+			free(CWD);
+			return EXIT_FAILURE;
+		}
+
+		strcpy(finDPath, dPath);
+		strcat(finDPath, "/");
+		strcat(finDPath, dFile);
+		strcat(finDPath, ".tmp");
+
+		strcpy(tempSwitch, dPath);
+		strcat(tempSwitch, "/");
+		strcat(tempSwitch, dFile);
+	}
+	free(CWD);
+	free(sPath);
+	free(sFile);
+	free(dPath);
+	free(dFile);
 
 
 
@@ -324,16 +324,36 @@ int handleMV(char* source, char* dest){
 	}
 	trimToChar(sourceDirect, '/', strlen(sourceDirect));
 	*/
-
+/*
 	printf("Source Path: %s\n", sPath);
 	printf("Source File: %s\n", sFile);
 	printf("Dest Path: %s\n", dPath);
 	printf("Dest File: %s\n", dFile);
-	free(dPath);
-	free(dFile);
-	free(sPath);
-	free(sFile);
+*/
+
+
+
+	printf("Source Path: %s\n", finSPath);
+	printf("Destination Path: %s\n", finDPath);
+	printf("Destination Rename: %s\n", tempSwitch);
+	printf("Here\n");
 	
+	
+	if(link(finSPath, finDPath)<0){
+		printf("Fail 1\n");
+		return EXIT_FAILURE;
+	} 
+
+	if(unlink(finSPath)<0){
+		printf("Fail 2\n");
+		return EXIT_FAILURE;
+	}
+
+	if(rename(finDPath, tempSwitch)<0){
+		printf("Fail 3\n");
+		return EXIT_FAILURE;
+	}
+
 	return EXIT_SUCCESS;
 }
 
