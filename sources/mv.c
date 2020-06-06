@@ -117,6 +117,33 @@ int handleMV(char* source, char* dest){
 		return EXIT_FAILURE;
 	}
 
+	//Check if source is a directory
+	if(*source == '/'){
+		char* root, *fullPath;
+		if(!(root = getenv("myRoot"))) return EXIT_FAILURE;
+		if(!(fullPath = malloc(strlen(root)+ strlen(source) + 1))) return EXIT_FAILURE;
+		strcpy(fullPath, root);
+		strcat(fullPath, source);
+		
+		if(access(fullPath, F_OK)==0){
+			struct stat trySource;
+			if(stat(fullPath, &trySource)>=0 && S_ISDIR(trySource.st_mode)){
+				free(fullPath);
+				return EXIT_FAILURE;
+			}
+		}
+		free(fullPath);
+
+	}else{
+		if(access(source,F_OK)==0){
+			struct stat trySource;
+			if(stat(source, &trySource)<0){
+				return EXIT_FAILURE;
+			}
+			if(S_ISDIR(trySource.st_mode)) return EXIT_FAILURE;
+		}
+	}
+
 
 	//Destination 
 	if(access(dest, F_OK)==0){
@@ -197,6 +224,74 @@ int handleMV(char* source, char* dest){
 		free(sPath);
 		free(sFile);
 	}
+
+
+
+	//Check source permissions
+	if(strcmp(sPath,sFile)==0){
+		//Check write permissions of the CWD
+		char *CWD;
+		if(!(CWD= getcwd(NULL, 0))){
+			free(dPath);
+		 	free(sPath);
+		 	free(dFile);
+		 	free(sFile);
+			return EXIT_FAILURE;
+		}
+
+		if(access(CWD, W_OK)!=0){
+			free(dPath);
+		 	free(sPath);
+		 	free(dFile);
+		 	free(sFile);
+		 	free(CWD);
+			return EXIT_FAILURE;
+		}
+		free(CWD);
+	}else{
+		//Check that write permissions of sPath is ok
+		if(access(sPath, F_OK)!=0 || access(sPath, W_OK)!=0){
+			free(dPath);
+		 	free(sPath);
+		 	free(dFile);
+		 	free(sFile);
+			return EXIT_FAILURE;
+		}
+
+	}
+	printf("Source Path ok\n");
+
+	//Check destination permissions
+	if(strcmp(dPath, dFile)==0){
+		//Check write permissions of CWD
+		char *CWD;
+		if(!(CWD= getcwd(NULL, 0))){
+			free(dPath);
+		 	free(sPath);
+		 	free(dFile);
+		 	free(sFile);
+			return EXIT_FAILURE;
+		}
+		printf("Dest Path (CWD) ok\n");
+
+		free(CWD);
+	}else{
+		//Check that write permission of dPath is ok
+		if(access(dPath, F_OK)!=0 || access(dPath, W_OK)!=0){
+			free(dPath);
+		 	free(sPath);
+		 	free(dFile);
+		 	free(sFile);
+			return EXIT_FAILURE;
+		}
+
+		printf("Dest Path (%s) ok\n", dPath);
+
+	}
+
+	
+
+
 
 	/*
 	if(*source == '/'){
