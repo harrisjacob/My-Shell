@@ -49,16 +49,16 @@ int validPath(char* path){
 //splitPath separates the base path (baseP) into allocated parent path and filename
 //If basepath starts with a '/', the full (from actual root) is allocated
 //On failure, splitPath should handle allocation cleanup
-int splitPath(char* pathAlc, char* fileAlc, char* baseP){
+int splitPath(char** pathAlc, char** fileAlc, char* baseP){
 
 		char* split = findTailChar(baseP, '/', 1);
 		int pathLen = split - baseP;
 		int fileLen = baseP + strlen(baseP) - split;
 
 		if(split == baseP){
-			if(!(pathAlc = strdup(baseP))) return EXIT_FAILURE;
-			if(!(fileAlc = strdup(baseP))){
-				free(pathAlc);
+			if(!(*pathAlc = strdup(baseP))) return EXIT_FAILURE;
+			if(!(*fileAlc = strdup(baseP))){
+				free(*pathAlc);
 				return EXIT_FAILURE;
 			}
 			return EXIT_SUCCESS;
@@ -68,33 +68,31 @@ int splitPath(char* pathAlc, char* fileAlc, char* baseP){
 
 			char *aliasRoot;
 			if(!(aliasRoot = getenv("myRoot"))) return EXIT_FAILURE;
-			if(!(pathAlc = malloc(strlen(aliasRoot)+ pathLen + 1))) return EXIT_FAILURE;
-			strcpy(pathAlc, aliasRoot);
-			char* nullC = pathAlc + strlen(pathAlc);
+			if(!(*pathAlc = malloc(strlen(aliasRoot)+ pathLen + 1))) return EXIT_FAILURE;
+			strcpy(*pathAlc, aliasRoot);
+			char* nullC = *pathAlc + strlen(*pathAlc);
 			memcpy(nullC, baseP, pathLen);
-			*(pathAlc + strlen(aliasRoot)+pathLen) = '\0';
+			*(*pathAlc + strlen(aliasRoot)+pathLen) = '\0';
 
 		}else{
 
-			if(!(pathAlc = malloc(pathLen + 1))) return EXIT_FAILURE;
-			memcpy(pathAlc, baseP, pathLen);
-			*(pathAlc + pathLen) = '\0';
+			if(!(*pathAlc = malloc(pathLen + 1))) return EXIT_FAILURE;
+			memcpy(*pathAlc, baseP, pathLen);
+			*(*pathAlc + pathLen) = '\0';
 
 		}
 
-		if(!(fileAlc = malloc(fileLen + 1))){
-			free(pathAlc);
+		if(!(*fileAlc = malloc(fileLen + 1))){
+			free(*pathAlc);
 			return EXIT_FAILURE;
 		}
 
-		strcpy(fileAlc, split+1);
+		strcpy(*fileAlc, split+1);
 
 
-		printf("Path: $%s$\n", pathAlc);
-		printf("File: $%s$\n", fileAlc);
+		//printf("Path: $%s$\n", *pathAlc);
+		//printf("File: $%s$\n", *fileAlc);
 
-		free(fileAlc);
-		free(pathAlc);
 		return EXIT_SUCCESS;
 
 }
@@ -104,7 +102,8 @@ int handleMV(char* source, char* dest){
 	if(!source || !dest) return EXIT_FAILURE;
 
 	int isDirectory = 0;
-	char *destDirect, *sourceDirect, *fileName;
+	char *dPath, *dFile, *sPath, *sFile;
+	dPath = dFile = sPath = sFile = NULL;
 	
 
 
@@ -127,18 +126,14 @@ int handleMV(char* source, char* dest){
 		}
 
 		if(S_ISDIR(tryDirect.st_mode)){
-			//Valid path and ends in a directory.  Need to check permission dest path and get file name from source
 			isDirectory = 1;
 
-			//Unnecesary allocation in context, but should be allocated because all other cases allocate
-			if(!(destDirect = strdup(dest))) return EXIT_FAILURE;
-			/*
-			if(!(destDirect = malloc((strlen(dest)+1)*sizeof(char)))) return EXIT_FAILURE;
-			memcpy(destDirect, dest, strlen(dest)+1);
-			*/
+			if(!(dPath = strdup(dest))) return EXIT_FAILURE;
 
+			/*
 			fileName = findTailChar(source, '/', 1);
 			if(fileName!=source) fileName++; //If the character was found, it should not be included in the filename (skip '/' character)
+			*/
 		}
 	}
 
@@ -146,6 +141,14 @@ int handleMV(char* source, char* dest){
 		//One of two cases:
 		//Valid path but does not end in a directory. Need to check the write permissions of the parent and overwrite the existing file
 		//Invalid dest path provided. Either the file name is new or there was an issue with parent directories.
+
+		if(splitPath(&dPath, &dFile, dest)==EXIT_FAILURE) return EXIT_FAILURE;
+
+
+
+
+
+		/*
 
 		char* strSplit; // A pointer to the location of the split between new name and parent path
 		strSplit = findTailChar(dest, '/', 1);
@@ -178,10 +181,24 @@ int handleMV(char* source, char* dest){
 		
 		fileName = strSplit;
 		fileName += (strSplit == dest) ? 0:1;
+		*/
 	}
 
 
 	//Source
+	if(splitPath(&sPath, &sFile, source)==EXIT_FAILURE){
+		free(dPath);
+		free(dFile);
+		return EXIT_FAILURE;
+	}
+
+	if(!dFile && !(dFile = strdup(sFile))){
+		free(dPath);
+		free(sPath);
+		free(sFile);
+	}
+
+	/*
 	if(*source == '/'){
 		char *aliasRoot;
 		if(!(aliasRoot = getenv("myRoot")))return EXIT_FAILURE;
@@ -194,29 +211,33 @@ int handleMV(char* source, char* dest){
 		strcat(sourceDirect, source);
 		
 		//char sourceRoot[strlen(aliasRoot)+strlen(source)+1];
-		/*
-		strcpy(sourceRoot, aliasRoot);
-		strcat(sourceRoot, source);
-		trimToChar(sourceRoot, '/', strlen(sourceRoot));
-		sourceDirect = sourceRoot;
-		*/
+		
+		//strcpy(sourceRoot, aliasRoot);
+		//strcat(sourceRoot, source);
+		//trimToChar(sourceRoot, '/', strlen(sourceRoot));
+		//sourceDirect = sourceRoot;
+		
 	}else{
 		if(!(sourceDirect = strdup(source))) return EXIT_FAILURE;
 		
-		/*
-		char sourceCopy[strlen(source)+1];
-		strcpy(sourceCopy, source);
-		trimToChar(sourceCopy, '/', strlen(sourceCopy));
-		sourceDirect = sourceCopy;
-		*/
+		
+		//char sourceCopy[strlen(source)+1];
+		//strcpy(sourceCopy, source);
+		//trimToChar(sourceCopy, '/', strlen(sourceCopy));
+		//sourceDirect = sourceCopy;
+		
 	}
 	trimToChar(sourceDirect, '/', strlen(sourceDirect));
+	*/
 
-
-	printf("\nDestination Directory: $%s$\n", destDirect);
-	printf("Source Directory: $%s$\n", sourceDirect);
-	printf("New filename: $%s$\n", fileName);
-	free(destDirect);
+	printf("Source Path: %s\n", sPath);
+	printf("Source File: %s\n", sFile);
+	printf("Dest Path: %s\n", dPath);
+	printf("Dest File: %s\n", dFile);
+	free(dPath);
+	free(dFile);
+	free(sPath);
+	free(sFile);
 	
 	return EXIT_SUCCESS;
 }
@@ -226,13 +247,15 @@ int handleMV(char* source, char* dest){
 
 int main(int argc, char* argv[]){
 
+	/*
 	char baseP[] = "/hello/mr/jacob";
 	char *pathAlc=NULL, *fileAlc=NULL;
 	splitPath(pathAlc, fileAlc, baseP);
 	printf("\n");
 	char baseP2[] = "hello/mr/jacob";
 	splitPath(pathAlc, fileAlc, baseP2);
-/*	
+	*/
+	
 	if(argc < 2){
 		usage();
 		return EXIT_FAILURE;
@@ -248,6 +271,6 @@ int main(int argc, char* argv[]){
 		fprintf(stderr, "mv: cannot move '%s' to '%s'\n", argv[1], argv[2]);
 		return EXIT_FAILURE;
 	}
-*/
+
 	return EXIT_SUCCESS;
 }
