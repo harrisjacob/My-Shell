@@ -56,8 +56,10 @@ int splitPath(char** pathAlc, char** fileAlc, char* baseP){
 		int fileLen = baseP + strlen(baseP) - split;
 
 		if(split == baseP){
-			if(!(*pathAlc = strdup(baseP))) return EXIT_FAILURE;
-			if(!(*fileAlc = strdup(baseP))){
+			char* skipChar = baseP;
+			if(*baseP == '/') skipChar+=1;
+			if(!(*pathAlc = strdup(skipChar))) return EXIT_FAILURE;
+			if(!(*fileAlc = strdup(skipChar))){
 				free(*pathAlc);
 				return EXIT_FAILURE;
 			}
@@ -89,12 +91,7 @@ int splitPath(char** pathAlc, char** fileAlc, char* baseP){
 
 		strcpy(*fileAlc, split+1);
 
-
-		//printf("Path: $%s$\n", *pathAlc);
-		//printf("File: $%s$\n", *fileAlc);
-
 		return EXIT_SUCCESS;
-
 }
 
 //0 is not dir, 1 is dir
@@ -134,11 +131,11 @@ int handleMV(char* source, char* dest){
 	
 	if(!source || !dest) return EXIT_FAILURE;
 
-	int sIsDir = 0;
-	int dIsDir = 0;
+	//int dIsDir = 0;
 	char *dPath, *dFile, *sPath, *sFile;
 	dPath = dFile = sPath = sFile = NULL;
 	
+	char *root, *CWD;
 
 
 	if(validPath(source) < 0){
@@ -151,6 +148,222 @@ int handleMV(char* source, char* dest){
 		return EXIT_FAILURE;
 	}
 
+	//Get root and local CWD
+	if(!(root = getenv("myRoot"))) return EXIT_FAILURE;
+	if(!(CWD = getcwd(NULL, 0))) return EXIT_FAILURE;
+
+
+	//Check if inputs are directories
+
+	if(pathIsDir(source)){
+		free(CWD);
+		return EXIT_FAILURE;  //Source must be a file
+	}
+
+	//Attempt to split source in two
+	if(splitPath(&sPath, &sFile, source)==EXIT_FAILURE){
+		free(CWD);
+		return EXIT_FAILURE;
+	}
+
+	if(strcmp(sPath, sFile) == 0){
+		//If the source char allocs match, a relative file was passed
+		//Reset sPath to path to file
+		free(sPath);
+		sPath = NULL;
+		if(!(sPath = malloc(strlen(CWD) + strlen(sFile) + 2))){
+			free(sFile);
+			free(CWD);
+			return EXIT_FAILURE;
+		}
+		strcpy(sPath, CWD);
+		strcat(sPath, "/");
+		strcat(sPath, sFile);
+	}else{
+		free(sPath);
+		sPath = NULL;
+		if(*source == '/'){
+			if(!(sPath = malloc(strlen(root) + strlen(source) + 2))){
+				free(sFile);
+				free(CWD);
+				return EXIT_FAILURE;
+			}
+			strcpy(sPath, root);
+		
+		}else{
+			
+			if(!(sPath = malloc(strlen(CWD) + strlen(source) + 2))){
+				free(CWD);
+				free(sFile);
+				return EXIT_FAILURE;
+			}
+			strcpy(sPath, CWD);
+			strcat(sPath, "/");
+		}
+		
+		strcat(sPath, source);
+
+	}
+
+	printf("\nSource: %s\n", sPath);
+	printf("SFile: %s\n", sFile);
+	
+
+	//Attempt to split source in two
+	if(splitPath(&dPath, &dFile, dest)==EXIT_FAILURE){
+		free(CWD);
+		free(sPath);
+		free(sFile);
+		return EXIT_FAILURE;
+	}
+
+	int destIsDir = pathIsDir(dest);
+
+	if(strcmp(dPath, dFile) == 0){
+		if(destIsDir){
+			free(dFile);
+			dFile = NULL;
+			if(!(dFile = strdup(sFile))){
+				free(CWD);
+				free(sPath);
+				free(sFile);
+				return EXIT_FAILURE;
+			}
+
+			free(dPath);
+			dPath = NULL;
+			if(!(dPath = malloc(strlen(CWD) + strlen(dest) + strlen(dFile) + 3))){
+				free(CWD);
+				free(sPath);
+				free(sFile);
+				free(dFile);
+			}
+			strcpy(dPath, CWD);
+			if(*dest != '/') strcat(dPath,"/");
+			strcat(dPath, dest);
+			strcat(dPath, "/");
+			strcat(dPath, dFile);
+
+		}else{
+			free(dPath);
+			dPath = NULL;
+			if(!(dPath = malloc(strlen(CWD) + strlen(dFile) + 1))){
+				free(dFile);
+				free(CWD);
+				free(sPath);
+				free(sFile);
+				return EXIT_FAILURE;
+			}
+			strcpy(dPath, CWD);
+			strcat(dPath, "/");
+			strcat(dPath, dFile);
+		}
+	}else{
+		if(destIsDir){
+			free(dFile);
+			dFile = NULL;
+			if(!(dFile = strdup(sFile))){
+				free(CWD);
+				free(sPath);
+				free(sFile);
+				return EXIT_FAILURE;
+			}
+			free(dPath);
+			dPath = NULL;
+			int prefixSz = (*dest == '/') ? strlen(root) : strlen(CWD);
+			if(!(dPath = malloc(prefixSz+strlen(dest)+strlen(dFile)+3))){
+				free(CWD);
+				free(sPath);
+				free(sFile);
+				free(dFile);
+			}
+			if(*dest == '/'){
+				strcpy(dPath, root);
+			}else{
+				strcpy(dPath, CWD);
+				strcat(dPath, "/");
+			}
+			
+			strcat(dPath, dest);
+			strcat(dPath,"/");
+			strcat(dPath,dFile);
+
+
+		}else{	
+			free(dPath);
+			dPath = NULL;
+			int prefixSz = (*dest == '/') ? strlen(root) : strlen(CWD);
+			if(!(dPath = malloc(prefixSz + strlen(dest) + 2))){
+				free(dFile);
+				free(CWD);
+				free(sPath);
+				free(sFile);
+				return EXIT_FAILURE;
+			}
+
+			if(*dest == '/'){
+				strcpy(dPath, root);
+			}else{
+				strcpy(dPath, CWD);
+				strcat(dPath, "/");
+			}
+		
+			strcat(dPath, dest);
+		}
+
+		
+
+	}
+
+	printf("Dest File: %s\n", dFile);
+	printf("Dest Path: %s\n\n", dPath);
+
+
+
+
+
+
+
+	/*		free(dPath);
+			printf("Dest case 3: Read split\n");
+			free(dPath);
+			dPath = NULL;
+			printf("CWD ------ %s\n", CWD);
+			printf("Root ----- %s\n", root);
+			printf("dest ----- %s\n", dest);
+			if(!(dPath = malloc(strlen(CWD) + strlen(dest) + 1))){
+				free(dFile);
+				free(CWD);
+				free(sPath);
+				free(sFile);
+				return EXIT_FAILURE;
+			}
+	*/
+	free(dFile);
+	free(CWD);
+	free(sPath);
+	free(sFile);
+
+
+
+
+
+
+
+
+
+
+	/*
+	if((dIsDir = pathIsDir(dest))){
+		if(*dest == '/'){
+
+		}else{
+			dPath = strdup(dest);
+		}
+		
+	}*/
+
+	/*
 	//Check if source is a directory
 	if((sIsDir = pathIsDir(source))) return EXIT_FAILURE;
 
@@ -292,47 +505,6 @@ int handleMV(char* source, char* dest){
 	free(dFile);
 
 
-
-	/*
-	if(*source == '/'){
-		char *aliasRoot;
-		if(!(aliasRoot = getenv("myRoot")))return EXIT_FAILURE;
-
-
-		if(!(sourceDirect = malloc(strlen(aliasRoot)+strlen(source)+1))){
-			return EXIT_FAILURE;
-		}
-		strcpy(sourceDirect, aliasRoot);
-		strcat(sourceDirect, source);
-		
-		//char sourceRoot[strlen(aliasRoot)+strlen(source)+1];
-		
-		//strcpy(sourceRoot, aliasRoot);
-		//strcat(sourceRoot, source);
-		//trimToChar(sourceRoot, '/', strlen(sourceRoot));
-		//sourceDirect = sourceRoot;
-		
-	}else{
-		if(!(sourceDirect = strdup(source))) return EXIT_FAILURE;
-		
-		
-		//char sourceCopy[strlen(source)+1];
-		//strcpy(sourceCopy, source);
-		//trimToChar(sourceCopy, '/', strlen(sourceCopy));
-		//sourceDirect = sourceCopy;
-		
-	}
-	trimToChar(sourceDirect, '/', strlen(sourceDirect));
-	*/
-/*
-	printf("Source Path: %s\n", sPath);
-	printf("Source File: %s\n", sFile);
-	printf("Dest Path: %s\n", dPath);
-	printf("Dest File: %s\n", dFile);
-*/
-
-
-
 	printf("Source Path: %s\n", finSPath);
 	printf("Destination Path: %s\n", finDPath);
 	printf("Destination Rename: %s\n", tempSwitch);
@@ -353,7 +525,7 @@ int handleMV(char* source, char* dest){
 		printf("Fail 3\n");
 		return EXIT_FAILURE;
 	}
-
+	*/
 	return EXIT_SUCCESS;
 }
 
@@ -361,15 +533,54 @@ int handleMV(char* source, char* dest){
 
 
 int main(int argc, char* argv[]){
-
 	/*
-	char baseP[] = "/hello/mr/jacob";
-	char *pathAlc=NULL, *fileAlc=NULL;
-	splitPath(pathAlc, fileAlc, baseP);
-	printf("\n");
-	char baseP2[] = "hello/mr/jacob";
-	splitPath(pathAlc, fileAlc, baseP2);
-	*/
+	if(pathIsDir("/play")){
+		printf("Directory\n");
+	}else{
+		printf("Not\n");
+	}
+
+	if(pathIsDir("/play/directory")){
+		printf("Directory\n");
+	}else{
+		printf("Not\n");
+	}
+
+	if(pathIsDir("play")){
+		printf("Directory\n");
+	}else{
+		printf("Not\n");
+	}
+
+	if(pathIsDir("play/directory")){
+		printf("Directory\n");
+	}else{
+		printf("Not\n");
+	}
+
+	if(pathIsDir("/play/hello")){
+		printf("Directory\n");
+	}else{
+		printf("Not\n");
+	}
+
+	if(pathIsDir("play/hello")){
+		printf("Directory\n");
+	}else{
+		printf("Not\n");
+	}
+
+	if(pathIsDir("/play/goodbye")){
+		printf("Directory\n");
+	}else{
+		printf("Not\n");
+	}
+
+	if(pathIsDir("play/goodbye")){
+		printf("Directory\n");
+	}else{
+		printf("Not\n");
+	}*/
 	
 	if(argc < 2){
 		usage();
@@ -386,6 +597,6 @@ int main(int argc, char* argv[]){
 		fprintf(stderr, "mv: cannot move '%s' to '%s'\n", argv[1], argv[2]);
 		return EXIT_FAILURE;
 	}
-
+	
 	return EXIT_SUCCESS;
 }
