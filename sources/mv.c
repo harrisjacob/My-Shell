@@ -120,6 +120,19 @@ int parentAccess(char* path, int mode){
 
 }
 
+int linkAndSwap(char* source, char* dest){
+
+	char tempDest[strlen(dest)+5];
+	strcpy(tempDest, dest);
+	strcat(tempDest, ".tmp");
+	
+	if(link(source, tempDest)<0)return EXIT_FAILURE;
+	if(unlink(source)<0) return EXIT_FAILURE;
+	return (rename(tempDest, dest)<0) ? EXIT_FAILURE : EXIT_SUCCESS; 
+
+}
+
+
 int handleMV(char* source, char* dest){
 	
 	if(!source || !dest) return EXIT_FAILURE;
@@ -254,9 +267,18 @@ int handleMV(char* source, char* dest){
 	}
 
 
+	int LASres;
+	LASres = linkAndSwap(sPath, dPath);
+	
+	free(dFile);
+	free(dPath);
+	free(CWD);
+	free(sPath);
+	free(sFile);
 
 
-	return EXIT_SUCCESS;
+
+	return LASres;
 }
 
 
