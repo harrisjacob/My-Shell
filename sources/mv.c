@@ -16,7 +16,7 @@ void usage(){
 int validPath(char* path){
 	if(!path) return -1;
 	
-	int depthCnt = 0;
+	int depthCnt;
 
 	if(*path != '/'){
 		char *CWD = getenv("myCWD");
@@ -27,6 +27,8 @@ int validPath(char* path){
 
 		depthCnt = charCount(CWD, '/');
 		depthCnt += (strcmp(CWD,"/")==0) ? 0 : 1;
+	}else{
+		depthCnt = 1;
 	}
 
 	char pathCopy[strlen(path)+1];
@@ -46,48 +48,25 @@ int validPath(char* path){
 	return depthCnt;
 }
 
-//splitPath separates the base path (baseP) into allocated parent path and filename
-//If basepath starts with a '/', the full (from actual root) is allocated
-//On failure, splitPath should handle allocation cleanup
-int splitPath(char** pathAlc, char** fileAlc, char* baseP){
+//splitPath attempts to split the filename from the path
+int splitPath(char** fileAlc, char* baseP){
+
+		if(strlen(baseP) == 1){
+			if(!(*fileAlc = strdup(baseP))) return EXIT_FAILURE;
+			return EXIT_SUCCESS;
+		}
 
 		char* split = findTailChar(baseP, '/', 1);
-		int pathLen = split - baseP;
 		int fileLen = baseP + strlen(baseP) - split;
 
 		if(split == baseP){
 			char* skipChar = baseP;
 			if(*baseP == '/') skipChar+=1;
-			if(!(*pathAlc = strdup(skipChar))) return EXIT_FAILURE;
-			if(!(*fileAlc = strdup(skipChar))){
-				free(*pathAlc);
-				return EXIT_FAILURE;
-			}
+			if(!(*fileAlc = strdup(skipChar)))return EXIT_FAILURE;
 			return EXIT_SUCCESS;
 		}
 
-		if(*baseP == '/'){
-
-			char *aliasRoot;
-			if(!(aliasRoot = getenv("myRoot"))) return EXIT_FAILURE;
-			if(!(*pathAlc = malloc(strlen(aliasRoot)+ pathLen + 1))) return EXIT_FAILURE;
-			strcpy(*pathAlc, aliasRoot);
-			char* nullC = *pathAlc + strlen(*pathAlc);
-			memcpy(nullC, baseP, pathLen);
-			*(*pathAlc + strlen(aliasRoot)+pathLen) = '\0';
-
-		}else{
-
-			if(!(*pathAlc = malloc(pathLen + 1))) return EXIT_FAILURE;
-			memcpy(*pathAlc, baseP, pathLen);
-			*(*pathAlc + pathLen) = '\0';
-
-		}
-
-		if(!(*fileAlc = malloc(fileLen + 1))){
-			free(*pathAlc);
-			return EXIT_FAILURE;
-		}
+		if(!(*fileAlc = malloc(fileLen + 1))) return EXIT_FAILURE;
 
 		strcpy(*fileAlc, split+1);
 
@@ -151,7 +130,11 @@ int handleMV(char* source, char* dest){
 	//Get root and local CWD
 	if(!(root = getenv("myRoot"))) return EXIT_FAILURE;
 	if(!(CWD = getcwd(NULL, 0))) return EXIT_FAILURE;
+	int rootLen = strlen(root);
+	int CWDLen = strlen(CWD);
 
+	int sRoot = (*source == '/') ? 1 : 0;
+	int dRoot = (*dest == '/') ? 1 : 0;
 
 	//Check if inputs are directories
 
@@ -161,23 +144,52 @@ int handleMV(char* source, char* dest){
 	}
 
 	//Attempt to split source in two
-	if(splitPath(&sPath, &sFile, source)==EXIT_FAILURE){
+	if(splitPath(&sFile, source)==EXIT_FAILURE){
 		free(CWD);
 		return EXIT_FAILURE;
 	}
 
+
+
+	int prefixSz;
+
+	prefixSz = (sRoot) ? rootLen : CWDLen;
+
+	if(!(sPath = malloc(prefixSz + strlen(source) + 2))){
+		free(sFile);
+		free(CWD);
+		return EXIT_FAILURE;
+	}
+	if(sRoot){
+		strcpy(sPath, root);
+	}else{
+		strcpy(sPath, CWD);
+		strcat(sPath, "/");
+	}
+		
+	strcat(sPath, source);
+
+
+	/*
 	if(strcmp(sPath, sFile) == 0){
 		//If the source char allocs match, a relative file was passed
 		//Reset sPath to path to file
 		free(sPath);
 		sPath = NULL;
-		if(!(sPath = malloc(strlen(CWD) + strlen(sFile) + 2))){
+		int prefixSz = (sRoot) ? rootLen : CWDLen;
+
+		if(!(sPath = malloc(prefixSz + strlen(sFile) + 2))){
 			free(sFile);
 			free(CWD);
 			return EXIT_FAILURE;
 		}
-		strcpy(sPath, CWD);
-		strcat(sPath, "/");
+		if(sRoot){
+			strcpy(sPath, root);
+		}else{
+			strcpy(sPath, CWD);
+			strcat(sPath, "/");
+		}
+
 		strcat(sPath, sFile);
 	}else{
 		free(sPath);
@@ -204,13 +216,14 @@ int handleMV(char* source, char* dest){
 		strcat(sPath, source);
 
 	}
+	*/
 
 	printf("\nSource: %s\n", sPath);
 	printf("SFile: %s\n", sFile);
 	
 
-	//Attempt to split source in two
-	if(splitPath(&dPath, &dFile, dest)==EXIT_FAILURE){
+	//Attempt to split dest in two
+	if(splitPath(&dFile, dest)==EXIT_FAILURE){
 		free(CWD);
 		free(sPath);
 		free(sFile);
@@ -218,9 +231,59 @@ int handleMV(char* source, char* dest){
 	}
 
 	int destIsDir = pathIsDir(dest);
+	prefixSz = (dRoot)? strlen(root) : strlen(CWD);
 
+	if(destIsDir){
+		if(!(dFile = strdup(sFile))){
+			free(CWD);
+			free(sPath);
+			free(sFile);
+			return EXIT_FAILURE;
+		}
+
+		if(!(dPath = malloc(prefixSz + strlen(dest) + strlen(dFile) + 3))){
+			free(CWD);
+			free(sPath);
+			free(sFile);
+			free(dFile);
+		}
+		if(dRoot){
+			strcpy(dPath, root);
+		}else{
+			strcpy(dPath, CWD);
+			strcat(dPath, "/");
+		}
+
+		strcat(dPath, dest);
+		strcat(dPath, "/");
+		strcat(dPath, dFile);
+
+	}else{
+		
+		if(!(dPath = malloc(prefixSz + strlen(dest) + 2))){
+			free(dFile);
+			free(CWD);
+			free(sPath);
+			free(sFile);
+			return EXIT_FAILURE;
+		}
+
+		if(*dest == '/'){
+			strcpy(dPath, root);
+		}else{
+			strcpy(dPath, CWD);
+			strcat(dPath, "/");
+		}
+		
+		strcat(dPath, dest);
+	}
+
+
+
+	/*
 	if(strcmp(dPath, dFile) == 0){
 		if(destIsDir){
+			
 			free(dFile);
 			dFile = NULL;
 			if(!(dFile = strdup(sFile))){
@@ -232,14 +295,22 @@ int handleMV(char* source, char* dest){
 
 			free(dPath);
 			dPath = NULL;
-			if(!(dPath = malloc(strlen(CWD) + strlen(dest) + strlen(dFile) + 3))){
+
+			prefixSz = (*dest == '/')? strlen(root) : strlen(CWD);
+
+			if(!(dPath = malloc(prefixSz + strlen(dest) + strlen(dFile) + 3))){
 				free(CWD);
 				free(sPath);
 				free(sFile);
 				free(dFile);
 			}
-			strcpy(dPath, CWD);
-			if(*dest != '/') strcat(dPath,"/");
+			if(*dest == '/'){
+				strcpy(dPath, root);
+			}else{
+				strcpy(dPath, CWD);
+				strcat(dPath, "/");
+			}
+
 			strcat(dPath, dest);
 			strcat(dPath, "/");
 			strcat(dPath, dFile);
@@ -270,7 +341,7 @@ int handleMV(char* source, char* dest){
 			}
 			free(dPath);
 			dPath = NULL;
-			int prefixSz = (*dest == '/') ? strlen(root) : strlen(CWD);
+			prefixSz = (*dest == '/') ? strlen(root) : strlen(CWD);
 			if(!(dPath = malloc(prefixSz+strlen(dest)+strlen(dFile)+3))){
 				free(CWD);
 				free(sPath);
@@ -292,7 +363,7 @@ int handleMV(char* source, char* dest){
 		}else{	
 			free(dPath);
 			dPath = NULL;
-			int prefixSz = (*dest == '/') ? strlen(root) : strlen(CWD);
+			prefixSz = (*dest == '/') ? strlen(root) : strlen(CWD);
 			if(!(dPath = malloc(prefixSz + strlen(dest) + 2))){
 				free(dFile);
 				free(CWD);
@@ -314,7 +385,7 @@ int handleMV(char* source, char* dest){
 		
 
 	}
-
+	*/
 	printf("Dest File: %s\n", dFile);
 	printf("Dest Path: %s\n\n", dPath);
 
@@ -340,6 +411,7 @@ int handleMV(char* source, char* dest){
 			}
 	*/
 	free(dFile);
+	free(dPath);
 	free(CWD);
 	free(sPath);
 	free(sFile);
