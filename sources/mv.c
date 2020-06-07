@@ -73,12 +73,12 @@ int splitPath(char** fileAlc, char* baseP){
 		return EXIT_SUCCESS;
 }
 
-//0 is not dir, 1 is dir
+//0 is not dir, 1 is dir, -1 failure
 int pathIsDir(char* path){
 	if(*path == '/'){
 		char* root, *fullPath;
-		if(!(root = getenv("myRoot"))) return EXIT_FAILURE;
-		if(!(fullPath = malloc(strlen(root)+ strlen(path) + 1))) return EXIT_FAILURE;
+		if(!(root = getenv("myRoot"))) return -1;
+		if(!(fullPath = malloc(strlen(root)+ strlen(path) + 1))) return -1;
 
 		strcpy(fullPath, root);
 		strcat(fullPath, path);
@@ -107,7 +107,6 @@ int pathIsDir(char* path){
 }
 
 int parentAccess(char* path, int mode){
-
 	char* parent = findTailChar(path, '/', 0);
 	if(parent == path) return EXIT_FAILURE;
 	
@@ -117,11 +116,9 @@ int parentAccess(char* path, int mode){
 	*(parentPath + parentLen) = '\0';
 
 	return (access(parentPath, mode) == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
-
 }
 
 int linkAndSwap(char* source, char* dest){
-
 	char tempDest[strlen(dest)+5];
 	strcpy(tempDest, dest);
 	strcat(tempDest, ".tmp");
@@ -129,7 +126,6 @@ int linkAndSwap(char* source, char* dest){
 	if(link(source, tempDest)<0)return EXIT_FAILURE;
 	if(unlink(source)<0) return EXIT_FAILURE;
 	return (rename(tempDest, dest)<0) ? EXIT_FAILURE : EXIT_SUCCESS; 
-
 }
 
 
@@ -163,7 +159,7 @@ int handleMV(char* source, char* dest){
 	int dRoot = (*dest == '/') ? 1 : 0;
 
 	
-	if(pathIsDir(source)){
+	if(pathIsDir(source) != 0){
 		free(CWD);
 		return EXIT_FAILURE;  //Source must be a file
 	}
@@ -174,10 +170,7 @@ int handleMV(char* source, char* dest){
 		return EXIT_FAILURE;
 	}
 
-
-
 	int prefixSz;
-
 	prefixSz = (sRoot) ? rootLen : CWDLen;
 
 	//Source
@@ -197,14 +190,13 @@ int handleMV(char* source, char* dest){
 
 	
 	//Destination
-	if(splitPath(&dFile, dest)==EXIT_FAILURE){
+	int destIsDir;
+	if(splitPath(&dFile, dest)==EXIT_FAILURE || (destIsDir = pathIsDir(dest)) == -1){
 		free(CWD);
 		free(sPath);
 		free(sFile);
 		return EXIT_FAILURE;
 	}
-
-	int destIsDir = pathIsDir(dest);
 
 	if(destIsDir){
 		if(!(dFile = strdup(sFile))){
@@ -251,12 +243,6 @@ int handleMV(char* source, char* dest){
 		strcat(dPath, dest);
 	}
 
-	//printf("\nSource File: %s\n", sFile);
-	//printf("Source Path: %s\n", sPath);
-	//printf("Dest File: %s\n", dFile);
-	//printf("Dest Path: %s\n\n", dPath);
-
-
 	if(parentAccess(sPath, W_OK) == EXIT_FAILURE || parentAccess(dPath, W_OK) == EXIT_FAILURE ){
 		free(dFile);
 		free(dPath);
@@ -276,13 +262,8 @@ int handleMV(char* source, char* dest){
 	free(sPath);
 	free(sFile);
 
-
-
 	return LASres;
 }
-
-
-
 
 int main(int argc, char* argv[]){
 	
