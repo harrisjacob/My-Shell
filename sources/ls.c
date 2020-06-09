@@ -17,17 +17,16 @@ void trimDate(char** myDate);
 
 int main(int argc, char *argv[]){
 
-	char dirPath[BUFSIZ];
-	getcwd(dirPath, BUFSIZ);
-
-	char permission[11] = "----------";
+	char* dirPath;
+	char permission[11];
 	bool lFlag, aFlag, res;
+	char* readPath = NULL;
 
 	lFlag = aFlag = res = false;
 
 	int opt = 0;
 
-	while((opt = getopt(argc, argv, "hla"))!= -1){
+	while((opt = getopt(argc, argv, "-hla"))!= -1){
 		switch(opt){
 			case 'h':
 				usage();
@@ -38,15 +37,46 @@ int main(int argc, char *argv[]){
 			case 'a':
 				aFlag = true;
 				break;
+			case 1:
+				if(!readPath) readPath = optarg;
+				break;
 			default:
 				fprintf(stderr, "Try 'ls -h' for more information\n");
 				return EXIT_FAILURE;
 		}
 	}
 
+	
+	if(readPath){
+		if(*readPath == '/'){
+			char* root;
+			if(!(root =  getenv("myRoot"))){
+				fprintf(stderr, "%s: Could not access root directory\n", argv[0]);
+			}
+			if(!(dirPath = malloc(strlen(root)+strlen(readPath)+1))){
+				return EXIT_FAILURE;
+			}
+			strcpy(dirPath, root);
+			strcat(dirPath, argv[1]);
+		}else{
+			if(!(dirPath = strdup(readPath))){
+				fprintf(stderr, "%s: Allocation failed for specified directory\n", argv[0]);
+				return EXIT_FAILURE;
+			}
+		}
+	}else{
+		if(!(dirPath = getcwd(NULL, 0))){
+			fprintf(stderr, "%s: Failed to fetch current working directory: %s\n", argv[0], strerror(errno));
+			return EXIT_FAILURE;
+		}
+	}
+	
+
+
 	DIR *directory;
 	if(!(directory = opendir(dirPath))){
 		fprintf(stderr, "%s: %s\n", argv[0], strerror(errno));
+		free(dirPath);
 		return EXIT_FAILURE;
 	}
 
@@ -134,7 +164,7 @@ int main(int argc, char *argv[]){
 	printf((!lFlag && res) ? "\n" : "");
 	
 	closedir(directory);
-
+	free(dirPath);
 	return EXIT_SUCCESS;
 }
 
