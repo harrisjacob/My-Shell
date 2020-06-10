@@ -26,9 +26,11 @@ struct dirItem{
 	struct dirItem* nextItem;
 };
 
-void printEntries(struct dirItem*);
+void printEntries(struct dirItem*, int);
 
 void freeEntries(struct dirItem*);
+
+int checkDigits(size_t file);
 
 int main(int argc, char *argv[]){
 
@@ -38,6 +40,7 @@ int main(int argc, char *argv[]){
 	char* readPath = NULL;
 	struct dirItem *newNode, *headNode, *temp;
 	headNode = temp = NULL;
+	int tryWidth, fileWidth = 0;
 
 	lFlag = aFlag = res = false;
 
@@ -194,6 +197,8 @@ int main(int argc, char *argv[]){
 			newNode->fileName = strdup(dStruct->d_name);
 			
 			temp = newNode;
+			tryWidth = checkDigits(myStat.st_size);
+			if(tryWidth > fileWidth) fileWidth = tryWidth;
 			//printf("%s %li %11s %11s %4zi %s %s\n", permission, myStat.st_nlink, username, groupName, myStat.st_size, myDate, dStruct->d_name);
 		}else{
 			printf("%s  ", dStruct->d_name);
@@ -201,7 +206,7 @@ int main(int argc, char *argv[]){
 	}
 
 	if(headNode){
-		printEntries(headNode);
+		printEntries(headNode, fileWidth);
 		freeEntries(headNode);
 	}
 
@@ -234,9 +239,9 @@ void usage(){
 	printf("  -l\tuse long listing format\n");
 }
 
-void printEntries(struct dirItem* d){
+void printEntries(struct dirItem* d, int fWidth){
 	while(d){
-		printf("%s %li %11s %11s %4zi %s %s\n", d->perm, d->num_Links, d->userName, d->groupName, d->f_size, d->fileDate, d->fileName);
+		printf("%s %li %11s %11s %*.zi %s %s\n", d->perm, d->num_Links, d->userName, d->groupName, fWidth, d->f_size, d->fileDate, d->fileName);
 		d = d->nextItem;
 	}
 }
@@ -248,4 +253,13 @@ void freeEntries(struct dirItem* d){
 		free(d);
 		d = temp;
 	}
+}
+
+int checkDigits(size_t file){
+	int ctr = 0;
+	while(file > 0){
+		file /= 10;
+		ctr++;
+	}
+	return ctr;
 }
