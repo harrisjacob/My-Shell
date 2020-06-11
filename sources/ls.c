@@ -41,6 +41,7 @@ int main(int argc, char *argv[]){
 	struct dirItem *newNode, *headNode, *temp;
 	headNode = temp = NULL;
 	int tryWidth, fileWidth = 0;
+	long path_max;
 
 	lFlag = aFlag = res = false;
 
@@ -66,32 +67,42 @@ int main(int argc, char *argv[]){
 		}
 	}
 
-	
-	if(readPath){
-		if(*readPath == '/'){
-			char* root;
-			if(!(root =  getenv("myRoot"))){
-				fprintf(stderr, "%s: Could not access root directory\n", argv[0]);
-			}
-			if(!(dirPath = malloc(strlen(root)+strlen(readPath)+1))){
-				return EXIT_FAILURE;
-			}
-			strcpy(dirPath, root);
-			strcat(dirPath, argv[1]);
-		}else{
-			if(!(dirPath = strdup(readPath))){
-				fprintf(stderr, "%s: Allocation failed for specified directory\n", argv[0]);
-				return EXIT_FAILURE;
-			}
+	if(readPath && *readPath == '/'){
+		char* root;
+		if(!(root =  getenv("myRoot"))){
+			fprintf(stderr, "%s: Could not access root directory\n", argv[0]);
+			return EXIT_FAILURE;
 		}
+
+		if((path_max = pathconf(root, _PC_PATH_MAX)) < 0){
+			fprintf(stderr, "%s: Failed to get path length: %s\n", argv[0], strerror(errno));
+			return EXIT_FAILURE;
+		}
+
+		if(!(dirPath = malloc(path_max))){
+			return EXIT_FAILURE;
+		}
+		strcpy(dirPath, root);
+
 	}else{
-		if(!(dirPath = getcwd(NULL, 0))){
+		
+		if((path_max = pathconf(".", _PC_PATH_MAX)) < 0){
+			fprintf(stderr, "%s: Failed to get path length: %s\n", argv[0], strerror(errno));
+			return EXIT_FAILURE;
+		}
+
+		if(!(dirPath = malloc(path_max))){
+			return EXIT_FAILURE;
+		}
+
+		if(!getcwd(dirPath, path_max)){
 			fprintf(stderr, "%s: Failed to fetch current working directory: %s\n", argv[0], strerror(errno));
 			return EXIT_FAILURE;
 		}
+		strcat(dirPath, "/");
 	}
-	
 
+	if(readPath) strcat(dirPath, readPath);
 
 	DIR *directory;
 	if(!(directory = opendir(dirPath))){
