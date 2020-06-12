@@ -3,9 +3,11 @@
 #include<stdlib.h>
 #include<string.h>
 #include<unistd.h>
+#include <fcntl.h>
 
 void usage(void);
 char* allocPath(char*);
+int makeCopy(char*, char*, char*);
 
 
 int main(int argc, char* argv[]){
@@ -23,13 +25,7 @@ int main(int argc, char* argv[]){
 		return EXIT_FAILURE;
 	} 
 
-	printf("Source: %s\n", src);
-	printf("Destination: %s\n", dst);
-
-	free(src);
-	free(dst);
-
-	return EXIT_SUCCESS;
+	return makeCopy(src, dst, argv[1]);
 }
 
 
@@ -46,7 +42,6 @@ char* allocPath(char* u_arg){
 	
 	if(*u_arg == '/'){
 		
-		
 		if((path_max = pathconf("/", _PC_PATH_MAX)) < 0){
 			fprintf(stderr, "cp: Failed to get path length: %s\n", strerror(errno));
 			return NULL;
@@ -61,6 +56,7 @@ char* allocPath(char* u_arg){
 		strcpy(ret_Alloc, root);
 		strcat(ret_Alloc, u_arg);
 	}else{
+	
 		if((path_max = pathconf(".", _PC_PATH_MAX)) < 0){
 			fprintf(stderr, "cp: Failed to get path length: %s\n", strerror(errno));
 			return NULL;
@@ -73,4 +69,49 @@ char* allocPath(char* u_arg){
 
 	return ret_Alloc;
 
+}
+
+int makeCopy(char* src, char* dst, char* src_name){
+	int src_fd, dir_fd, dst_fd;
+
+	if((src_fd = open(src, O_RDONLY)) < 0){
+		fprintf(stderr, "cp: source cannot be read\n");
+		free(src);
+		free(dst);
+		return EXIT_FAILURE;
+	}
+
+	mode_t perm = 0777;
+	//Get permissions of src_fd to apply to dest
+
+	if((dir_fd = open(dst, O_DIRECTORY)) < 0){
+		if((dst_fd = creat(dst, perm)) < 0){
+			free(src);
+			free(dst);
+			return EXIT_FAILURE;
+		}
+	}else{
+		if((dst_fd = openat(dir_fd, src_name, O_CREAT|O_WRONLY|O_TRUNC, perm)) < 0){
+			free(src);
+			free(dst);
+			return EXIT_FAILURE;
+		}
+	}
+
+	char buff[BUFSIZ];
+	ssize_t byteCount;
+
+	while((byteCount = read(src_fd, buff, BUFSIZ)) > 0){
+		if(write(dst_fd, buff, byteCount) != byteCount){
+			fprintf(stderr, "cp: Failed to copy file correctly: %s\n", strerror(errno));
+			free(src);
+			free(dst);
+			return EXIT_FAILURE;
+		}
+	}
+
+
+	free(src);
+	free(dst);
+	return EXIT_SUCCESS;
 }
