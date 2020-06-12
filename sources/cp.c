@@ -3,7 +3,9 @@
 #include<stdlib.h>
 #include<string.h>
 #include<unistd.h>
-#include <fcntl.h>
+#include<fcntl.h>
+#include<sys/types.h>
+#include<sys/stat.h>
 
 void usage(void);
 char* allocPath(char*);
@@ -75,23 +77,39 @@ int makeCopy(char* src, char* dst, char* src_name){
 	int src_fd, dir_fd, dst_fd;
 
 	if((src_fd = open(src, O_RDONLY)) < 0){
-		fprintf(stderr, "cp: source cannot be read\n");
+		fprintf(stderr, "cp: Failed to read source: %s\n", strerror(errno));
 		free(src);
 		free(dst);
 		return EXIT_FAILURE;
 	}
 
-	mode_t perm = 0777;
-	//Get permissions of src_fd to apply to dest
+	struct stat srcStat;
+	if(fstat(src_fd, &srcStat) < 0){
+		fprintf(stderr, "cp: Failed to get source information: %s\n", strerror(errno));
+		free(src);
+		free(dst);
+		return EXIT_FAILURE;
+	}
+
+	if(!S_ISREG(srcStat.st_mode)){
+		fprintf(stderr, "cp: Current cp version only supports copying regular files\n");
+		free(src);
+		free(dst);
+		return EXIT_FAILURE;
+	}
+
+	mode_t perm = srcStat.st_mode & 0777;
 
 	if((dir_fd = open(dst, O_DIRECTORY)) < 0){
 		if((dst_fd = creat(dst, perm)) < 0){
+			fprintf(stderr, "cp: Failed to create destination file: %s\n", strerror(errno));
 			free(src);
 			free(dst);
 			return EXIT_FAILURE;
 		}
 	}else{
 		if((dst_fd = openat(dir_fd, src_name, O_CREAT|O_WRONLY|O_TRUNC, perm)) < 0){
+			fprintf(stderr, "cp: Failed to create destination file: %s\n", strerror(errno));
 			free(src);
 			free(dst);
 			return EXIT_FAILURE;
@@ -103,7 +121,7 @@ int makeCopy(char* src, char* dst, char* src_name){
 
 	while((byteCount = read(src_fd, buff, BUFSIZ)) > 0){
 		if(write(dst_fd, buff, byteCount) != byteCount){
-			fprintf(stderr, "cp: Failed to copy file correctly: %s\n", strerror(errno));
+			fprintf(stderr, "cp: Failed to copy source file: %s\n", strerror(errno));
 			free(src);
 			free(dst);
 			return EXIT_FAILURE;
