@@ -42,6 +42,8 @@ int changeDirectoryUtil(char* directory, char* startLocAlias, char* startLocActu
 
 int changeDirectory(char* propPath){
 
+	if(!propPath) return EXIT_SUCCESS;
+
 	char *startAliasLoc, *startActualLoc, *currentAliasCWD, *currentActualCWD;
 	char foo[] = "/";
 
