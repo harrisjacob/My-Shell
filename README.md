@@ -12,6 +12,9 @@ The purpose of this project was to practice implementing some of the more popula
 ## Supported
 - All commands support absolute/relative pathnames (if applicable)
 
+### "exit" / "quit"
+- Exit the shell (return)
+
 ### cd - change directory
 - Can reference current directory using "." and parent directory using ..
 - No arguments ("cd ") will display the same result as "cd ."
