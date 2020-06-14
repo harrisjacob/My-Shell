@@ -8,6 +8,7 @@
 #include<utime.h>
 #include<sys/types.h>
 #include<sys/stat.h>
+#include "common.h"
 
 void usage(){
 	printf("Usage: touch FILE\n");
@@ -29,8 +30,15 @@ int main(int argc, char* argv[]){
 		return EXIT_SUCCESS;
 	}
 
-	if((fd = open(argv[1], O_CREAT, 00777))<0){
+	char* touchPath;
+	if(!(touchPath = allocPath(argv[1]))){
+		fprintf(stderr, "touch: Failed to allocate path\n");
+		return EXIT_FAILURE;
+	}
+
+	if((fd = open(touchPath, O_CREAT, 00777))<0){
 		fprintf(stderr, "touch: Could not create file %s: %s\n", argv[1], strerror(errno));
+		free(touchPath);
 		return EXIT_FAILURE;
 	}
 
@@ -44,10 +52,13 @@ int main(int argc, char* argv[]){
 	timeWrite.actime = currentTime;
 	timeWrite.modtime = currentTime;
 
-	if(utime(argv[1], &timeWrite) < 0){
+	if(utime(touchPath, &timeWrite) < 0){
 		fprintf(stderr, "touch: Failed to write current time to file: %s\n", strerror(errno));
+		free(touchPath);
 		return EXIT_FAILURE;
 	}
+
+	free(touchPath);
 
 	if(close(fd)<0){
 		fprintf(stderr, "touch: Could not close file %s: %s\n", argv[1], strerror(errno));
