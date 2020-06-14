@@ -10,6 +10,7 @@
 #include<errno.h>
 #include<stdbool.h>
 #include<string.h>
+#include "common.h"
 
 void usage();
 
@@ -41,7 +42,6 @@ int main(int argc, char *argv[]){
 	struct dirItem *newNode, *headNode, *temp;
 	headNode = temp = NULL;
 	int tryWidth, fileWidth = 0;
-	long path_max;
 
 	lFlag = aFlag = res = false;
 
@@ -67,42 +67,11 @@ int main(int argc, char *argv[]){
 		}
 	}
 
-	if(readPath && *readPath == '/'){
-		char* root;
-		if(!(root =  getenv("myRoot"))){
-			fprintf(stderr, "%s: Could not access root directory\n", argv[0]);
-			return EXIT_FAILURE;
-		}
-
-		if((path_max = pathconf(root, _PC_PATH_MAX)) < 0){
-			fprintf(stderr, "%s: Failed to get path length: %s\n", argv[0], strerror(errno));
-			return EXIT_FAILURE;
-		}
-
-		if(!(dirPath = malloc(path_max))){
-			return EXIT_FAILURE;
-		}
-		strcpy(dirPath, root);
-
+	if(readPath){
+		if(!(dirPath = allocPath(readPath))) return EXIT_FAILURE;
 	}else{
-		
-		if((path_max = pathconf(".", _PC_PATH_MAX)) < 0){
-			fprintf(stderr, "%s: Failed to get path length: %s\n", argv[0], strerror(errno));
-			return EXIT_FAILURE;
-		}
-
-		if(!(dirPath = malloc(path_max))){
-			return EXIT_FAILURE;
-		}
-
-		if(!getcwd(dirPath, path_max)){
-			fprintf(stderr, "%s: Failed to fetch current working directory: %s\n", argv[0], strerror(errno));
-			return EXIT_FAILURE;
-		}
-		strcat(dirPath, "/");
+		if(!(dirPath = allocPath("."))) return EXIT_FAILURE;
 	}
-
-	if(readPath) strcat(dirPath, readPath);
 
 	DIR *directory;
 	if(!(directory = opendir(dirPath))){

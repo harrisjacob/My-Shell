@@ -105,3 +105,38 @@ int charCount(char* search, char thisChar){
 	return cCount;
 }
 
+char* allocPath(char* u_arg){
+	if(!u_arg) return NULL;
+	char* ret_Alloc;
+	long path_max, pathLen;
+	
+	if(*u_arg == '/'){
+		
+		if((path_max = pathconf("/", _PC_PATH_MAX)) < 0){
+			fprintf(stderr, "Failed to get path length: %s\n", strerror(errno));
+			return NULL;
+		}
+		char* root;
+		if(!(root =  getenv("myRoot"))){
+			fprintf(stderr, "Could not access root directory\n");
+		}
+
+		if((pathLen = strlen(root) + strlen(u_arg)) >= path_max) return NULL;
+		if(!(ret_Alloc = malloc(pathLen + 1))) return NULL;
+		strcpy(ret_Alloc, root);
+		strcat(ret_Alloc, u_arg);
+	}else{
+	
+		if((path_max = pathconf(".", _PC_PATH_MAX)) < 0){
+			fprintf(stderr, "Failed to get path length: %s\n", strerror(errno));
+			return NULL;
+		}
+
+		if((pathLen = strlen(u_arg)) >= path_max) return NULL;
+		if(!(ret_Alloc = malloc(pathLen + 1))) return NULL;
+		strcpy(ret_Alloc, u_arg);
+	}
+
+	return ret_Alloc;
+
+}
