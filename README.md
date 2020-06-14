@@ -12,7 +12,7 @@ The purpose of this project was to practice implementing some of the more popula
 ## Supported
 - All commands support absolute/relative pathnames (if applicable)
 
-### "exit" / "quit"
+### exit / quit
 - Exit the shell (return)
 
 ### cd - change directory
