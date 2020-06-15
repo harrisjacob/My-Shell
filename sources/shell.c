@@ -70,7 +70,7 @@ int main(int argc, char *argv[]){
 			}
 		}
 
-		if(strcmp(program, "cd") == 0) validProgram = true;
+		if(strcmp(program, "cd") == 0 || strcmp(program, "echo")==0) validProgram = true;
 
 		if(!validProgram){
 			printf("-MyShell: %s: command not found\n", program);
@@ -83,6 +83,11 @@ int main(int argc, char *argv[]){
 		if(strcmp(program, "cd") == 0){
 			changeDirectory(args[1]);
 			closedir(directory);
+			continue;
+		}
+
+		if(strcmp(program, "echo") == 0){
+			printf("%s\n", (args[1]) ? args[1] : "");
 			continue;
 		}
 
