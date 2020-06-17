@@ -136,23 +136,19 @@ int setMyENV(char* currProg){
 		return EXIT_FAILURE;
 	}
 
-	char envVar[] = "myRoot";
-	char myCWD[] = "myCWD";
-	char newRoot[] = "/";
-
-	if(setenv(envVar, dirPath, 0)!=0){
-		fprintf(stderr, "%s: Failed to write %s environment variable: %s\n", currProg, envVar, strerror(errno));
+	if(setenv("myRoot", dirPath, 0)!=0){
+		fprintf(stderr, "%s: Failed to write root location environment variable: %s\n", currProg,strerror(errno));
 		return EXIT_FAILURE;
 	}
 
-	if(setenv(myCWD, newRoot, 0)!=0){
-		fprintf(stderr, "%s: Failed to write %s environment variable: %s\n", currProg, myCWD, strerror(errno));
+	if(setenv("myCWD", "/", 0)!=0){
+		fprintf(stderr, "%s: Failed to write root path environment variable: %s\n", currProg, strerror(errno));
 		return EXIT_FAILURE;
 	}
 
 	free(dirPath);
 
-	if(!getenv(envVar)){
+	if(!getenv("myRoot")){
 		fprintf(stderr, "%s: Check root environment variable failed\n", currProg);
 		return EXIT_FAILURE;
 	}
